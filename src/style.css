@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #fff8f0;
+  color: #4e342e;
+  min-height: 100dvh;
+}
+
+.dark body,
+body.dark {
+  background-color: #1a1210;
+  color: #f0e6df;
+}
+
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"],
+input[type="number"],
+input[type="text"],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 16px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #ffe4c8;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ff8a80;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3);
+}
+
+.dark input[type="range"] {
+  background: #3d2e28;
+}
+
+.dark input[type="range"]::-webkit-slider-thumb {
+  background: #ff6b6b;
+}
