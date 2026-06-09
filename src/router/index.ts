@@ -6,6 +6,7 @@ import DiaperPage from '@/pages/DiaperPage.vue'
 import HistoryPage from '@/pages/HistoryPage.vue'
 import WeeklyPage from '@/pages/WeeklyPage.vue'
 import SettingsPage from '@/pages/SettingsPage.vue'
+import FamilyPage from '@/pages/FamilyPage.vue'
 
 const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
@@ -15,6 +16,7 @@ const routes = [
   { path: '/history', name: 'history', component: HistoryPage },
   { path: '/weekly', name: 'weekly', component: WeeklyPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
+  { path: '/family', name: 'family', component: FamilyPage },
 ]
 
 const router = createRouter({

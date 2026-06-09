@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
-const { baby, todaySummary, recentActivities } = useBabyCare()
+const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities } = useBabyCare()
+
+const showBabyPicker = ref(false)
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -56,6 +59,11 @@ function getActivityTime(record: ActivityRecord) {
   if (record.type === 'feeding') return formatTime((record as FeedingRecord).timestamp)
   return formatTime((record as DiaperRecord).timestamp)
 }
+
+function handleSwitchBaby(id: string) {
+  switchBaby(id)
+  showBabyPicker.value = false
+}
 </script>
 
 <template>
@@ -65,10 +73,38 @@ function getActivityTime(record: ActivityRecord) {
         <div class="w-10 h-10 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
           <Baby :size="20" class="text-peach-400 dark:text-peach-400" />
         </div>
-        <div>
-          <h1 class="text-xl font-extrabold text-warm-500 dark:text-cream-100 font-display">{{ baby.name }}</h1>
+        <div class="flex-1">
+          <button @click="showBabyPicker = !showBabyPicker" class="flex items-center gap-1">
+            <h1 class="text-xl font-extrabold text-warm-500 dark:text-cream-100 font-display">{{ baby.name }}</h1>
+            <ChevronDown v-if="babies.length > 1" :size="16" class="text-warm-300 dark:text-warm-200 transition-transform" :class="showBabyPicker ? 'rotate-180' : ''" />
+          </button>
           <p class="text-xs text-warm-300 dark:text-warm-200">{{ getAge() }}</p>
         </div>
+        <button @click="router.push('/family')"
+          class="w-9 h-9 rounded-xl bg-white dark:bg-[#2a1f1a] flex items-center justify-center shadow-sm">
+          <Baby :size="16" class="text-peach-400" />
+        </button>
+      </div>
+
+      <div v-if="showBabyPicker && babies.length > 1"
+        class="mt-2 bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-lg border border-cream-200 dark:border-warm-500/20 overflow-hidden">
+        <button v-for="b in babies" :key="b.id" @click="handleSwitchBaby(b.id)"
+          class="w-full flex items-center gap-3 px-4 py-3 transition-colors hover:bg-cream-50 dark:hover:bg-warm-500/10"
+          :class="b.id === currentBabyId ? 'bg-peach-50 dark:bg-peach-500/10' : ''">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center"
+            :class="b.id === currentBabyId ? 'bg-peach-100 dark:bg-peach-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
+            <Baby :size="14" :class="b.id === currentBabyId ? 'text-peach-400' : 'text-warm-300 dark:text-warm-200'" />
+          </div>
+          <div class="flex-1 text-left">
+            <p class="text-sm font-semibold" :class="b.id === currentBabyId ? 'text-peach-500 dark:text-peach-400' : 'text-warm-500 dark:text-cream-100'">{{ b.name }}</p>
+            <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ b.gender === 'male' ? '👦' : '👧' }} {{ b.birthDate }}</p>
+          </div>
+          <div v-if="b.id === currentBabyId" class="w-2 h-2 rounded-full bg-peach-400"></div>
+        </button>
+        <button @click="router.push('/family'); showBabyPicker = false"
+          class="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 border-t border-cream-100 dark:border-warm-500/10 text-xs font-bold text-peach-400 hover:bg-cream-50 dark:hover:bg-warm-500/10">
+          <Plus :size="14" /> 添加宝宝
+        </button>
       </div>
     </header>
 

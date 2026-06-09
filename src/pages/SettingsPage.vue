@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Settings, Baby, Moon, Bell, Download, Check } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2 } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
+import { useFamily } from '@/composables/useFamily'
 import { useTheme } from '@/composables/useTheme'
+import { ROLE_LABELS } from '@/types'
 
-const { baby, settings, updateBaby, updateSettings, feedings, sleeps, diapers } = useBabyCare()
+const router = useRouter()
+const { baby, babies, settings, updateCurrentBaby, updateSettings, feedings, sleeps, diapers, deleteBaby } = useBabyCare()
+const { family, currentMember } = useFamily()
 const { theme, toggleTheme, isDark } = useTheme()
 
 const editName = ref(baby.value.name)
@@ -13,7 +18,7 @@ const editGender = ref(baby.value.gender)
 const saved = ref(false)
 
 function handleSaveBaby() {
-  updateBaby({
+  updateCurrentBaby({
     name: editName.value,
     birthDate: editBirthDate.value,
     gender: editGender.value,
@@ -34,9 +39,11 @@ function handleToggleNotif() {
 function handleExport() {
   const data = {
     baby: baby.value,
+    babies: babies.value,
     feedings: feedings.value,
     sleeps: sleeps.value,
     diapers: diapers.value,
+    family: family.value,
     exportedAt: new Date().toISOString(),
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -46,6 +53,24 @@ function handleExport() {
   a.download = `baby-care-export-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+const confirmDeleteBabyId = ref<string | null>(null)
+
+function handleDeleteBaby(babyId: string) {
+  if (babies.value.length <= 1) return
+  if (confirmDeleteBabyId.value === babyId) {
+    deleteBaby(babyId)
+    confirmDeleteBabyId.value = null
+    if (babyId === baby.value.id) {
+      editName.value = babies.value[0]?.name || ''
+      editBirthDate.value = babies.value[0]?.birthDate || ''
+      editGender.value = babies.value[0]?.gender || 'female'
+    }
+  } else {
+    confirmDeleteBabyId.value = babyId
+    setTimeout(() => { confirmDeleteBabyId.value = null }, 3000)
+  }
 }
 </script>
 
@@ -60,11 +85,63 @@ function handleExport() {
 
     <section class="mb-6">
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
-        <Baby :size="14" /> 宝宝信息
+        <Users :size="14" /> 家庭账号
       </h2>
+      <button @click="router.push('/family')"
+        class="w-full bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm">
+        <div class="flex items-center justify-between px-4 py-3.5">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center"
+              :class="family ? 'bg-peach-100 dark:bg-peach-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
+              <Users :size="18" :class="family ? 'text-peach-400' : 'text-warm-300 dark:text-warm-200'" />
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
+                {{ family ? family.name : '创建家庭' }}
+              </p>
+              <p class="text-[11px] text-warm-300 dark:text-warm-200">
+                <template v-if="family">
+                  {{ family.members.length }} 位成员 · {{ ROLE_LABELS[currentMember?.role || 'member'] }}
+                </template>
+                <template v-else>邀请家人共同照护</template>
+              </p>
+            </div>
+          </div>
+          <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+        </div>
+      </button>
+    </section>
+
+    <section class="mb-6">
+      <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
+        <Baby :size="14" /> 宝宝管理
+      </h2>
+      <div class="space-y-2 mb-3">
+        <div v-for="b in babies" :key="b.id"
+          class="flex items-center gap-3 bg-white dark:bg-[#2a1f1a] rounded-xl px-3 py-3 shadow-sm">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            :class="b.id === baby.id ? 'bg-peach-100 dark:bg-peach-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
+            <Baby :size="16" :class="b.id === baby.id ? 'text-peach-400' : 'text-warm-300 dark:text-warm-200'" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
+              {{ b.name }}
+              <span v-if="b.id === baby.id" class="text-[10px] text-peach-400 ml-1">当前</span>
+            </p>
+            <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ b.gender === 'male' ? '👦' : '👧' }} {{ b.birthDate }}</p>
+          </div>
+          <button v-if="babies.length > 1" @click="handleDeleteBaby(b.id)"
+            class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            :class="confirmDeleteBabyId === b.id
+              ? 'bg-red-100 dark:bg-red-500/20 text-red-500'
+              : 'text-warm-200 dark:text-warm-300 hover:text-red-400'">
+            <Trash2 :size="14" />
+          </button>
+        </div>
+      </div>
       <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm space-y-4">
         <div>
-          <label class="text-xs font-semibold text-warm-300 dark:text-warm-200 mb-1 block">姓名</label>
+          <label class="text-xs font-semibold text-warm-300 dark:text-warm-200 mb-1 block">当前宝宝姓名</label>
           <input
             v-model="editName"
             type="text"
@@ -173,7 +250,7 @@ function handleExport() {
     </section>
 
     <section class="text-center py-4">
-      <p class="text-[11px] text-warm-200 dark:text-warm-300">宝宝照护记录 v1.0</p>
+      <p class="text-[11px] text-warm-200 dark:text-warm-300">宝宝照护记录 v2.0</p>
       <p class="text-[10px] text-warm-200 dark:text-warm-300 mt-0.5">用爱记录每一天 ❤️</p>
     </section>
   </div>
