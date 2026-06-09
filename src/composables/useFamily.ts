@@ -3,8 +3,8 @@ import type { FamilyRole, Invitation, FamilyMember } from '@/types'
 import { ROLE_LABELS } from '@/types'
 import {
   family, currentUserId, currentUserName, currentMember, currentRole,
-  isOwner, isAdmin, hasPermission, persist, genId,
-  switchToMember, resetAsNewUser, babies,
+  isOwner, isAdmin, hasPermission, persist, persistData, persistSession, genId,
+  switchToMember, resetAsNewUser, babies, needsJoin, isFamilyMember,
 } from './useSharedStore'
 
 function genInviteCode(): string {
@@ -19,6 +19,7 @@ function genInviteCode(): string {
 export function useFamily() {
   function createFamily(name: string, userName: string) {
     currentUserName.value = userName
+    persistSession()
     const ownerMember: FamilyMember = {
       id: currentUserId.value,
       name: userName,
@@ -34,16 +35,17 @@ export function useFamily() {
       babies: babies.value.map(b => b.id),
       invitations: [],
     }
-    persist()
+    persistData()
   }
 
   function updateFamilyName(name: string) {
     if (!family.value || !hasPermission('manage_family')) return
     family.value.name = name
-    persist()
+    persistData()
   }
 
   function inviteMember(role: FamilyRole): Invitation {
+    if (!hasPermission('invite_member')) return null as unknown as Invitation
     const invitation: Invitation = {
       id: genId(),
       code: genInviteCode(),
@@ -54,7 +56,7 @@ export function useFamily() {
       status: 'pending',
     }
     family.value!.invitations.push(invitation)
-    persist()
+    persistData()
     return invitation
   }
 
@@ -68,7 +70,7 @@ export function useFamily() {
 
     if (new Date(invitation.expiresAt) < new Date()) {
       invitation.status = 'expired'
-      persist()
+      persistData()
       return { success: false, message: '邀请码已过期' }
     }
 
@@ -77,6 +79,7 @@ export function useFamily() {
     }
 
     currentUserName.value = userName
+    persistSession()
 
     const newMember: FamilyMember = {
       id: currentUserId.value,
@@ -88,7 +91,7 @@ export function useFamily() {
     invitation.status = 'used'
     invitation.usedBy = currentUserId.value
     invitation.usedAt = new Date().toISOString()
-    persist()
+    persistData()
     return { success: true, message: '加入家庭成功！' }
   }
 
@@ -98,32 +101,31 @@ export function useFamily() {
     const member = family.value.members.find(m => m.id === memberId)
     if (!member) return
     member.role = role
-    persist()
+    persistData()
   }
 
   function removeMember(memberId: string) {
     if (!family.value || !hasPermission('manage_members')) return
     if (memberId === family.value.ownerId) return
     family.value.members = family.value.members.filter(m => m.id !== memberId)
-    family.value.babies = family.value.babies
-    persist()
+    persistData()
   }
 
   function leaveFamily() {
     if (!family.value) return
     if (currentUserId.value === family.value.ownerId) return
     family.value.members = family.value.members.filter(m => m.id !== currentUserId.value)
-    persist()
+    persistData()
     if (family.value.members.length === 0) {
       family.value = null
-      persist()
+      persistData()
     }
   }
 
   function dissolveFamily() {
     if (!family.value || currentUserId.value !== family.value.ownerId) return
     family.value = null
-    persist()
+    persistData()
   }
 
   function addBabyToFamily(babyId: string) {
@@ -131,14 +133,14 @@ export function useFamily() {
     if (!hasPermission('manage_babies') && !hasPermission('add_record')) return
     if (!family.value.babies.includes(babyId)) {
       family.value.babies.push(babyId)
-      persist()
+      persistData()
     }
   }
 
   function removeBabyFromFamily(babyId: string) {
     if (!family.value || !hasPermission('manage_babies')) return
     family.value.babies = family.value.babies.filter(id => id !== babyId)
-    persist()
+    persistData()
   }
 
   return {
@@ -149,6 +151,8 @@ export function useFamily() {
     currentRole,
     isOwner,
     isAdmin,
+    isFamilyMember,
+    needsJoin,
     hasPermission,
     ROLE_LABELS,
     createFamily,

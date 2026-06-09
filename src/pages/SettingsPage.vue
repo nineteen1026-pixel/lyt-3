@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2 } from 'lucide-vue-next'
+import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2, Lock } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 import { useTheme } from '@/composables/useTheme'
 import { ROLE_LABELS } from '@/types'
 
 const router = useRouter()
-const { baby, babies, settings, updateCurrentBaby, updateSettings, feedings, sleeps, diapers, deleteBaby } = useBabyCare()
-const { family, currentMember, currentUserName, currentRole } = useFamily()
+const { baby, babies, settings, updateCurrentBaby, updateSettings, feedings, sleeps, diapers, deleteBaby, canManageBabies, canExportData, needsJoin } = useBabyCare()
+const { family, currentUserName, currentRole, needsJoin: familyNeedsJoin } = useFamily()
 const { theme, toggleTheme, isDark } = useTheme()
 
 const editName = ref(baby.value.name)
@@ -18,6 +18,7 @@ const editGender = ref(baby.value.gender)
 const saved = ref(false)
 
 function handleSaveBaby() {
+  if (!canManageBabies.value) return
   updateCurrentBaby({
     name: editName.value,
     birthDate: editBirthDate.value,
@@ -37,6 +38,7 @@ function handleToggleNotif() {
 }
 
 function handleExport() {
+  if (!canExportData.value) return
   const data = {
     baby: baby.value,
     babies: babies.value,
@@ -58,6 +60,7 @@ function handleExport() {
 const confirmDeleteBabyId = ref<string | null>(null)
 
 function handleDeleteBaby(babyId: string) {
+  if (!canManageBabies.value) return
   if (babies.value.length <= 1) return
   if (confirmDeleteBabyId.value === babyId) {
     deleteBaby(babyId)
@@ -92,15 +95,18 @@ function handleDeleteBaby(babyId: string) {
         <div class="flex items-center justify-between px-4 py-3.5">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-              :class="family ? 'bg-peach-100 dark:bg-peach-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
-              <Users :size="18" :class="family ? 'text-peach-400' : 'text-warm-300 dark:text-warm-200'" />
+              :class="family && !familyNeedsJoin ? 'bg-peach-100 dark:bg-peach-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
+              <Users :size="18" :class="family && !familyNeedsJoin ? 'text-peach-400' : 'text-warm-300 dark:text-warm-200'" />
             </div>
             <div class="text-left">
               <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
-                {{ family ? family.name : '创建家庭' }}
+                <template v-if="familyNeedsJoin">加入家庭</template>
+                <template v-else-if="family">{{ family.name }}</template>
+                <template v-else>创建家庭</template>
               </p>
               <p class="text-[11px] text-warm-300 dark:text-warm-200">
-                <template v-if="family">
+                <template v-if="familyNeedsJoin">你尚未加入，请使用邀请码</template>
+                <template v-else-if="family">
                   {{ currentUserName || '未设置昵称' }} · {{ ROLE_LABELS[currentRole || 'member'] }} · {{ family.members.length }} 位成员
                 </template>
                 <template v-else>邀请家人共同照护</template>
@@ -112,7 +118,7 @@ function handleDeleteBaby(babyId: string) {
       </button>
     </section>
 
-    <section class="mb-6">
+    <section v-if="!needsJoin" class="mb-6">
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
         <Baby :size="14" /> 宝宝管理
       </h2>
@@ -130,7 +136,7 @@ function handleDeleteBaby(babyId: string) {
             </p>
             <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ b.gender === 'male' ? '👦' : '👧' }} {{ b.birthDate }}</p>
           </div>
-          <button v-if="babies.length > 1" @click="handleDeleteBaby(b.id)"
+          <button v-if="babies.length > 1 && canManageBabies" @click="handleDeleteBaby(b.id)"
             class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
             :class="confirmDeleteBabyId === b.id
               ? 'bg-red-100 dark:bg-red-500/20 text-red-500'
@@ -139,7 +145,7 @@ function handleDeleteBaby(babyId: string) {
           </button>
         </div>
       </div>
-      <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm space-y-4">
+      <div v-if="canManageBabies" class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm space-y-4">
         <div>
           <label class="text-xs font-semibold text-warm-300 dark:text-warm-200 mb-1 block">当前宝宝姓名</label>
           <input
@@ -189,6 +195,9 @@ function handleDeleteBaby(babyId: string) {
           {{ saved ? '已保存' : '保存信息' }}
         </button>
       </div>
+      <div v-else class="bg-cream-100 dark:bg-warm-500/10 rounded-2xl py-3 px-4 text-center">
+        <p class="text-xs text-warm-300 dark:text-warm-200">当前角色无宝宝管理权限</p>
+      </div>
     </section>
 
     <section class="mb-6">
@@ -231,12 +240,13 @@ function handleDeleteBaby(babyId: string) {
       </div>
     </section>
 
-    <section class="mb-6">
+    <section v-if="!needsJoin" class="mb-6">
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
         <Download :size="14" /> 数据管理
       </h2>
       <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm">
         <button
+          v-if="canExportData"
           @click="handleExport"
           class="w-full flex items-center justify-between px-4 py-3.5 text-left"
         >
@@ -246,6 +256,13 @@ function handleDeleteBaby(babyId: string) {
           </div>
           <Download :size="16" class="text-warm-300 dark:text-warm-200" />
         </button>
+        <div v-else class="flex items-center justify-between px-4 py-3.5">
+          <div>
+            <p class="text-sm font-semibold text-warm-400 dark:text-warm-200">导出数据</p>
+            <p class="text-[11px] text-warm-300 dark:text-warm-200">当前角色无导出权限</p>
+          </div>
+          <Lock :size="16" class="text-warm-200 dark:text-warm-300" />
+        </div>
       </div>
     </section>
 

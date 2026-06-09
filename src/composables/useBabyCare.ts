@@ -2,9 +2,10 @@ import { computed } from 'vue'
 import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, ActivityRecord, AppSettings, DaySummary } from '@/types'
 import {
   babies, feedings, sleeps, diapers, settings, currentBabyId,
-  currentUserId, persist, genId, hasPermission,
-  canAddRecord, canDeleteRecord, canEditRecord, addBabyToFamily,
-  getMemberName,
+  currentUserId, persistData, genId, hasPermission,
+  canAddRecord, canDeleteRecord, canEditRecord, canManageBabies,
+  canViewRecord, canExportData, addBabyToFamily, getMemberName,
+  needsJoin, isFamilyMember,
 } from './useSharedStore'
 
 export function useBabyCare() {
@@ -18,24 +19,26 @@ export function useBabyCare() {
     const target = babies.value.find(b => b.id === babyId)
     if (target) {
       currentBabyId.value = babyId
-      persist()
+      persistData()
     }
   }
 
   function addBaby(data: Omit<Baby, 'id'>) {
+    if (!canManageBabies.value && !canAddRecord.value) return null
     const newBaby: Baby = { ...data, id: genId() }
     babies.value.push(newBaby)
     currentBabyId.value = newBaby.id
     addBabyToFamily(newBaby.id)
-    persist()
+    persistData()
     return newBaby
   }
 
   function updateBaby(babyId: string, data: Partial<Baby>) {
+    if (!canManageBabies.value) return
     const idx = babies.value.findIndex(b => b.id === babyId)
     if (idx >= 0) {
       babies.value[idx] = { ...babies.value[idx], ...data }
-      persist()
+      persistData()
     }
   }
 
@@ -46,6 +49,7 @@ export function useBabyCare() {
   }
 
   function deleteBaby(babyId: string) {
+    if (!canManageBabies.value) return
     if (babies.value.length <= 1) return
     babies.value = babies.value.filter(b => b.id !== babyId)
     feedings.value = feedings.value.filter(r => r.babyId !== babyId)
@@ -54,7 +58,7 @@ export function useBabyCare() {
     if (currentBabyId.value === babyId) {
       currentBabyId.value = babies.value[0]?.id || ''
     }
-    persist()
+    persistData()
   }
 
   function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
@@ -67,7 +71,7 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
     })
-    persist()
+    persistData()
     return true
   }
 
@@ -81,7 +85,7 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
     })
-    persist()
+    persistData()
     return true
   }
 
@@ -95,17 +99,17 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
     })
-    persist()
+    persistData()
     return true
   }
 
   function canDelete(id: string): boolean {
     if (canDeleteRecord.value) return true
     if (canEditRecord.value) {
-      const isOwner = feedings.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+      const createdByMe = feedings.value.some(r => r.id === id && r.createdBy === currentUserId.value)
         || sleeps.value.some(r => r.id === id && r.createdBy === currentUserId.value)
         || diapers.value.some(r => r.id === id && r.createdBy === currentUserId.value)
-      return isOwner
+      return createdByMe
     }
     return false
   }
@@ -115,13 +119,13 @@ export function useBabyCare() {
     feedings.value = feedings.value.filter(r => r.id !== id)
     sleeps.value = sleeps.value.filter(r => r.id !== id)
     diapers.value = diapers.value.filter(r => r.id !== id)
-    persist()
+    persistData()
     return true
   }
 
   function updateSettings(data: Partial<AppSettings>) {
     settings.value = { ...settings.value, ...data }
-    persist()
+    persistData()
   }
 
   const currentFeedings = computed(() =>
@@ -205,8 +209,13 @@ export function useBabyCare() {
     canAddRecord,
     canDeleteRecord,
     canEditRecord,
+    canManageBabies,
+    canViewRecord,
+    canExportData,
     canDelete,
     getMemberName,
+    needsJoin,
+    isFamilyMember,
     switchBaby,
     addBaby,
     updateBaby,

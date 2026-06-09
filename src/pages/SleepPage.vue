@@ -5,7 +5,7 @@ import { ArrowLeft, Moon, Check, Eye } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 
 const router = useRouter()
-const { addSleep, canAddRecord } = useBabyCare()
+const { addSleep, canAddRecord, needsJoin } = useBabyCare()
 
 const quality = ref<'deep' | 'light' | 'fussy'>('deep')
 const note = ref('')
@@ -67,7 +67,16 @@ const qualityOptions = [
       </h1>
     </header>
 
-    <div v-if="!canAddRecord" class="flex flex-col items-center justify-center py-20">
+    <div v-if="needsJoin" class="flex flex-col items-center justify-center py-20">
+      <div class="w-16 h-16 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center mb-4">
+        <Eye :size="32" class="text-peach-400" />
+      </div>
+      <p class="text-lg font-bold text-warm-400 dark:text-cream-100">请先加入家庭</p>
+      <p class="text-sm text-warm-300 dark:text-warm-200 mt-1">你尚未成为家庭成员</p>
+      <button @click="router.push('/family')" class="mt-4 px-5 py-2 rounded-xl bg-mint-400 text-white text-sm font-bold">前往加入</button>
+    </div>
+
+    <div v-else-if="!canAddRecord" class="flex flex-col items-center justify-center py-20">
       <div class="w-16 h-16 rounded-full bg-cream-100 dark:bg-warm-500/20 flex items-center justify-center mb-4">
         <Eye :size="32" class="text-warm-300 dark:text-warm-200" />
       </div>

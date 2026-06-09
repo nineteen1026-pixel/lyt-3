@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Milk, Moon, Droplets, Trash2, Filter } from 'lucide-vue-next'
+import { Milk, Moon, Droplets, Trash2, Filter, Eye } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
+import { useRouter } from 'vue-router'
 
-const { allActivities, deleteRecord, canDelete, getMemberName } = useBabyCare()
+const router = useRouter()
+const { allActivities, deleteRecord, canDelete, getMemberName, canViewRecord, needsJoin } = useBabyCare()
 
 const filterType = ref<'all' | 'feeding' | 'sleep' | 'diaper'>('all')
 
@@ -86,8 +88,27 @@ function handleDelete(id: string) {
         <Filter :size="20" class="text-warm-300" />
         历史记录
       </h1>
-      <p class="text-xs text-warm-300 dark:text-warm-200 mt-1">共 {{ filteredActivities.length }} 条记录</p>
     </header>
+
+    <div v-if="needsJoin" class="flex flex-col items-center justify-center py-16">
+      <div class="w-16 h-16 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center mb-4">
+        <Eye :size="32" class="text-peach-400" />
+      </div>
+      <p class="text-lg font-bold text-warm-400 dark:text-cream-100">请先加入家庭</p>
+      <p class="text-sm text-warm-300 dark:text-warm-200 mt-1">你尚未成为家庭成员</p>
+      <button @click="router.push('/family')" class="mt-4 px-5 py-2 rounded-xl bg-peach-400 text-white text-sm font-bold">前往加入</button>
+    </div>
+
+    <div v-else-if="!canViewRecord" class="flex flex-col items-center justify-center py-16">
+      <div class="w-16 h-16 rounded-full bg-cream-100 dark:bg-warm-500/20 flex items-center justify-center mb-4">
+        <Eye :size="32" class="text-warm-300 dark:text-warm-200" />
+      </div>
+      <p class="text-lg font-bold text-warm-400 dark:text-cream-100">无查看权限</p>
+      <p class="text-sm text-warm-300 dark:text-warm-200 mt-1">当前角色无查看记录权限</p>
+    </div>
+
+    <template v-else>
+    <p class="text-xs text-warm-300 dark:text-warm-200 mb-4">共 {{ filteredActivities.length }} 条记录</p>
 
     <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
       <button
@@ -135,5 +156,6 @@ function handleDelete(id: string) {
     <div v-if="filteredActivities.length === 0" class="text-center py-16">
       <p class="text-warm-300 dark:text-warm-200 text-sm">暂无记录</p>
     </div>
+    </template>
   </div>
 </template>

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
-const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName } = useBabyCare()
+const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin } = useBabyCare()
 
 const showBabyPicker = ref(false)
 
@@ -68,6 +68,16 @@ function handleSwitchBaby(id: string) {
 
 <template>
   <div class="max-w-lg mx-auto px-4 pt-6">
+    <div v-if="needsJoin" class="flex flex-col items-center justify-center py-16">
+      <div class="w-16 h-16 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center mb-4">
+        <Users :size="32" class="text-peach-400" />
+      </div>
+      <p class="text-lg font-bold text-warm-500 dark:text-cream-100">你尚未加入家庭</p>
+      <p class="text-sm text-warm-300 dark:text-warm-200 mt-1">请先通过邀请码加入家庭</p>
+      <button @click="router.push('/family')" class="mt-4 px-6 py-2.5 rounded-xl bg-peach-400 text-white text-sm font-bold">前往加入</button>
+    </div>
+
+    <template v-else>
     <header class="mb-6">
       <div class="flex items-center gap-3 mb-1">
         <div class="w-10 h-10 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
@@ -191,5 +201,6 @@ function handleSwitchBaby(id: string) {
         </div>
       </div>
     </section>
+    </template>
   </div>
 </template>

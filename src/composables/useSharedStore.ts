@@ -3,7 +3,7 @@ import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, AppSettings, Famil
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers } from '@/data/mock'
 
-const KEYS = {
+const LS_KEYS = {
   family: 'baby-care:family',
   babies: 'baby-care:babies',
   feedings: 'baby-care:feedings',
@@ -11,14 +11,17 @@ const KEYS = {
   diapers: 'baby-care:diapers',
   settings: 'baby-care:settings',
   currentBabyId: 'baby-care:current-baby-id',
-  currentUserId: 'baby-care:current-user-id',
-  currentUserName: 'baby-care:current-user-name',
   initialized: 'baby-care:initialized',
+}
+
+const SS_KEYS = {
+  userId: 'baby-care:session-user-id',
+  userName: 'baby-care:session-user-name',
 }
 
 const SYNC_CHANNEL = 'baby-care:shared-sync'
 
-function load<T>(key: string, fallback: T): T {
+function loadLS<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : fallback
@@ -27,70 +30,89 @@ function load<T>(key: string, fallback: T): T {
   }
 }
 
-function save(key: string, value: unknown) {
+function saveLS(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value))
+}
+
+function loadSS<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function saveSS(key: string, value: unknown) {
+  sessionStorage.setItem(key, JSON.stringify(value))
 }
 
 export function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 }
 
-const _uid = load<string>(KEYS.currentUserId, '')
+const _uid = loadSS<string>(SS_KEYS.userId, '')
 export const currentUserId = ref(_uid || genId())
-if (!_uid) save(KEYS.currentUserId, currentUserId.value)
+if (!_uid) saveSS(SS_KEYS.userId, currentUserId.value)
 
-export const currentUserName = ref(load<string>(KEYS.currentUserName, ''))
+export const currentUserName = ref(loadSS<string>(SS_KEYS.userName, ''))
 
-const initialized = localStorage.getItem(KEYS.initialized)
+const initialized = localStorage.getItem(LS_KEYS.initialized)
 const defaultBabyWithId: Baby = { ...defaultBaby, id: defaultBaby.id || genId() }
 
-export const family = ref<Family | null>(load<Family | null>(KEYS.family, null))
-export const babies = ref<Baby[]>(load<Baby[]>(KEYS.babies, [defaultBabyWithId]))
-export const feedings = ref<FeedingRecord[]>(initialized ? load<FeedingRecord[]>(KEYS.feedings, []) : [...mockFeedings])
-export const sleeps = ref<SleepRecord[]>(initialized ? load<SleepRecord[]>(KEYS.sleeps, []) : [...mockSleeps])
-export const diapers = ref<DiaperRecord[]>(initialized ? load<DiaperRecord[]>(KEYS.diapers, []) : [...mockDiapers])
-export const settings = ref<AppSettings>(load<AppSettings>(KEYS.settings, defaultSettings))
-export const currentBabyId = ref<string>(load<string>(KEYS.currentBabyId, babies.value[0]?.id || ''))
+export const family = ref<Family | null>(loadLS<Family | null>(LS_KEYS.family, null))
+export const babies = ref<Baby[]>(loadLS<Baby[]>(LS_KEYS.babies, [defaultBabyWithId]))
+export const feedings = ref<FeedingRecord[]>(initialized ? loadLS<FeedingRecord[]>(LS_KEYS.feedings, []) : [...mockFeedings])
+export const sleeps = ref<SleepRecord[]>(initialized ? loadLS<SleepRecord[]>(LS_KEYS.sleeps, []) : [...mockSleeps])
+export const diapers = ref<DiaperRecord[]>(initialized ? loadLS<DiaperRecord[]>(LS_KEYS.diapers, []) : [...mockDiapers])
+export const settings = ref<AppSettings>(loadLS<AppSettings>(LS_KEYS.settings, defaultSettings))
+export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, babies.value[0]?.id || ''))
 
 if (!initialized) {
-  save(KEYS.babies, babies.value)
-  save(KEYS.feedings, feedings.value)
-  save(KEYS.sleeps, sleeps.value)
-  save(KEYS.diapers, diapers.value)
-  save(KEYS.settings, settings.value)
-  save(KEYS.currentBabyId, currentBabyId.value)
-  localStorage.setItem(KEYS.initialized, 'true')
+  saveLS(LS_KEYS.babies, babies.value)
+  saveLS(LS_KEYS.feedings, feedings.value)
+  saveLS(LS_KEYS.sleeps, sleeps.value)
+  saveLS(LS_KEYS.diapers, diapers.value)
+  saveLS(LS_KEYS.settings, settings.value)
+  saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
+  localStorage.setItem(LS_KEYS.initialized, 'true')
 }
 
 let syncChannel: BroadcastChannel | null = null
 try {
   syncChannel = new BroadcastChannel(SYNC_CHANNEL)
   syncChannel.onmessage = () => {
-    family.value = load<Family | null>(KEYS.family, null)
-    babies.value = load<Baby[]>(KEYS.babies, [])
-    feedings.value = load<FeedingRecord[]>(KEYS.feedings, [])
-    sleeps.value = load<SleepRecord[]>(KEYS.sleeps, [])
-    diapers.value = load<DiaperRecord[]>(KEYS.diapers, [])
-    settings.value = load<AppSettings>(KEYS.settings, defaultSettings)
-    currentBabyId.value = load<string>(KEYS.currentBabyId, '')
-    currentUserId.value = load<string>(KEYS.currentUserId, '')
-    currentUserName.value = load<string>(KEYS.currentUserName, '')
+    family.value = loadLS<Family | null>(LS_KEYS.family, null)
+    babies.value = loadLS<Baby[]>(LS_KEYS.babies, [])
+    feedings.value = loadLS<FeedingRecord[]>(LS_KEYS.feedings, [])
+    sleeps.value = loadLS<SleepRecord[]>(LS_KEYS.sleeps, [])
+    diapers.value = loadLS<DiaperRecord[]>(LS_KEYS.diapers, [])
+    settings.value = loadLS<AppSettings>(LS_KEYS.settings, defaultSettings)
+    currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
   }
 } catch {
   syncChannel = null
 }
 
-export function persist() {
-  save(KEYS.family, family.value)
-  save(KEYS.babies, babies.value)
-  save(KEYS.feedings, feedings.value)
-  save(KEYS.sleeps, sleeps.value)
-  save(KEYS.diapers, diapers.value)
-  save(KEYS.settings, settings.value)
-  save(KEYS.currentBabyId, currentBabyId.value)
-  save(KEYS.currentUserId, currentUserId.value)
-  save(KEYS.currentUserName, currentUserName.value)
+export function persistData() {
+  saveLS(LS_KEYS.family, family.value)
+  saveLS(LS_KEYS.babies, babies.value)
+  saveLS(LS_KEYS.feedings, feedings.value)
+  saveLS(LS_KEYS.sleeps, sleeps.value)
+  saveLS(LS_KEYS.diapers, diapers.value)
+  saveLS(LS_KEYS.settings, settings.value)
+  saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
+}
+
+export function persistSession() {
+  saveSS(SS_KEYS.userId, currentUserId.value)
+  saveSS(SS_KEYS.userName, currentUserName.value)
+}
+
+export function persist() {
+  persistData()
+  persistSession()
 }
 
 export const currentMember = computed<FamilyMember | null>(() => {
@@ -100,9 +122,20 @@ export const currentMember = computed<FamilyMember | null>(() => {
 
 export const currentRole = computed<FamilyRole | null>(() => currentMember.value?.role ?? null)
 
+export const isFamilyMember = computed(() => {
+  if (!family.value) return true
+  return family.value.members.some(m => m.id === currentUserId.value)
+})
+
+export const needsJoin = computed(() => {
+  return family.value !== null && !isFamilyMember.value
+})
+
 export function hasPermission(permission: string): boolean {
+  if (!family.value) return true
+  if (!isFamilyMember.value) return false
   const role = currentRole.value
-  if (!role) return true
+  if (!role) return false
   return ROLE_PERMISSIONS[role].includes(permission)
 }
 
@@ -111,6 +144,9 @@ export const isAdmin = computed(() => currentRole.value === 'owner' || currentRo
 export const canAddRecord = computed(() => hasPermission('add_record'))
 export const canDeleteRecord = computed(() => hasPermission('delete_record'))
 export const canEditRecord = computed(() => hasPermission('edit_record') || hasPermission('edit_own'))
+export const canManageBabies = computed(() => hasPermission('manage_babies'))
+export const canViewRecord = computed(() => hasPermission('view_record'))
+export const canExportData = computed(() => hasPermission('export_data'))
 
 export function getMemberName(memberId: string): string {
   if (!family.value) return currentUserName.value || '我'
@@ -124,13 +160,13 @@ export function switchToMember(memberId: string) {
   if (!m) return
   currentUserId.value = m.id
   currentUserName.value = m.name
-  persist()
+  persistSession()
 }
 
 export function resetAsNewUser(name: string) {
   currentUserId.value = genId()
   currentUserName.value = name
-  persist()
+  persistSession()
 }
 
 export function addBabyToFamily(babyId: string) {
@@ -138,7 +174,7 @@ export function addBabyToFamily(babyId: string) {
   if (!hasPermission('manage_babies') && !hasPermission('add_record')) return
   if (!family.value.babies.includes(babyId)) {
     family.value.babies.push(babyId)
-    persist()
+    persistData()
   }
 }
 
