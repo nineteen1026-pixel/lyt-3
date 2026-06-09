@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
+import { useReminder } from '@/composables/useReminder'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
 const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin } = useBabyCare()
+const { overdueReminders, pendingReminders, pendingMissed, refreshAll } = useReminder()
 
 const showBabyPicker = ref(false)
 
@@ -175,6 +177,31 @@ function handleSwitchBaby(id: string) {
       <div v-else class="bg-cream-100 dark:bg-warm-500/10 rounded-2xl py-3 text-center">
         <p class="text-xs text-warm-300 dark:text-warm-200">当前角色无添加记录权限</p>
       </div>
+    </section>
+
+    <section class="mb-6">
+      <button
+        @click="refreshAll(); router.push('/reminders')"
+        class="w-full flex items-center gap-3 bg-gradient-to-r from-mint-50 to-peach-50 dark:from-mint-500/10 dark:to-peach-500/10 rounded-2xl px-4 py-3 shadow-sm"
+      >
+        <div class="w-9 h-9 rounded-xl bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center relative">
+          <Bell :size="18" class="text-mint-500" />
+          <div v-if="overdueReminders.length + pendingMissed.length > 0"
+            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
+            {{ overdueReminders.length + pendingMissed.length }}
+          </div>
+        </div>
+        <div class="flex-1 text-left">
+          <p class="text-sm font-bold text-warm-500 dark:text-cream-100">提醒中心</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">
+            <template v-if="overdueReminders.length > 0">{{ overdueReminders.length }}项超时提醒 · </template>
+            <template v-if="pendingReminders.length > 0">{{ pendingReminders.length }}项待办 · </template>
+            <template v-if="pendingMissed.length > 0">{{ pendingMissed.length }}项漏记 · </template>
+            历史规律分析 · 智能推送
+          </p>
+        </div>
+        <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+      </button>
     </section>
 
     <section class="mb-6">

@@ -82,6 +82,39 @@ export type HealthRecord = GrowthRecord | VaccineRecord | CheckupRecord
 
 export type ActivityRecord = FeedingRecord | SleepRecord | DiaperRecord
 
+export interface ReminderItem {
+  id: string
+  type: 'feeding' | 'sleep' | 'diaper'
+  title: string
+  description: string
+  scheduledTime: string
+  status: 'pending' | 'done' | 'overdue' | 'dismissed'
+  priority: 'high' | 'medium' | 'low'
+  babyId: string
+  createdAt: string
+}
+
+export interface MissedRecord {
+  id: string
+  type: 'feeding' | 'sleep' | 'diaper'
+  suggestedTime: string
+  endTime?: string
+  description: string
+  babyId: string
+  status: 'pending' | 'filled' | 'dismissed'
+}
+
+export interface PatternSummary {
+  avgFeedingIntervalMin: number
+  avgSleepDurationMin: number
+  avgDiaperIntervalMin: number
+  avgDailyFeedings: number
+  avgDailyDiapers: number
+  nextFeedingTime: string | null
+  nextDiaperTime: string | null
+  nextSleepTime: string | null
+}
+
 export interface AppSettings {
   darkMode: boolean
   notifications: boolean

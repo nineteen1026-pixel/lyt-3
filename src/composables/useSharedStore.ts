@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers, mockGrowths, mockVaccines, mockCheckups } from '@/data/mock'
 
@@ -13,6 +13,8 @@ const LS_KEYS = {
   vaccines: 'baby-care:vaccines',
   checkups: 'baby-care:checkups',
   settings: 'baby-care:settings',
+  reminders: 'baby-care:reminders',
+  missedRecords: 'baby-care:missed-records',
   currentBabyId: 'baby-care:current-baby-id',
   initialized: 'baby-care:initialized',
 }
@@ -72,6 +74,8 @@ export const growths = ref<GrowthRecord[]>(initialized ? loadLS<GrowthRecord[]>(
 export const vaccines = ref<VaccineRecord[]>(initialized ? loadLS<VaccineRecord[]>(LS_KEYS.vaccines, []) : [...mockVaccines])
 export const checkups = ref<CheckupRecord[]>(initialized ? loadLS<CheckupRecord[]>(LS_KEYS.checkups, []) : [...mockCheckups])
 export const settings = ref<AppSettings>(loadLS<AppSettings>(LS_KEYS.settings, defaultSettings))
+export const reminders = ref<ReminderItem[]>(loadLS<ReminderItem[]>(LS_KEYS.reminders, []))
+export const missedRecords = ref<MissedRecord[]>(loadLS<MissedRecord[]>(LS_KEYS.missedRecords, []))
 export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, babies.value[0]?.id || ''))
 
 if (!initialized) {
@@ -83,6 +87,8 @@ if (!initialized) {
   saveLS(LS_KEYS.vaccines, vaccines.value)
   saveLS(LS_KEYS.checkups, checkups.value)
   saveLS(LS_KEYS.settings, settings.value)
+  saveLS(LS_KEYS.reminders, reminders.value)
+  saveLS(LS_KEYS.missedRecords, missedRecords.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   localStorage.setItem(LS_KEYS.initialized, 'true')
 }
@@ -100,6 +106,8 @@ try {
     vaccines.value = loadLS<VaccineRecord[]>(LS_KEYS.vaccines, [])
     checkups.value = loadLS<CheckupRecord[]>(LS_KEYS.checkups, [])
     settings.value = loadLS<AppSettings>(LS_KEYS.settings, defaultSettings)
+    reminders.value = loadLS<ReminderItem[]>(LS_KEYS.reminders, [])
+    missedRecords.value = loadLS<MissedRecord[]>(LS_KEYS.missedRecords, [])
     currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
   }
 } catch {
@@ -116,6 +124,8 @@ export function persistData() {
   saveLS(LS_KEYS.vaccines, vaccines.value)
   saveLS(LS_KEYS.checkups, checkups.value)
   saveLS(LS_KEYS.settings, settings.value)
+  saveLS(LS_KEYS.reminders, reminders.value)
+  saveLS(LS_KEYS.missedRecords, missedRecords.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
