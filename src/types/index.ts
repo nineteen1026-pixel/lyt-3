@@ -39,6 +39,47 @@ export interface DiaperRecord {
   createdBy: string
 }
 
+export interface GrowthRecord {
+  id: string
+  type: 'growth'
+  babyId: string
+  timestamp: string
+  height: number
+  weight: number
+  headCircumference?: number
+  note: string
+  createdBy: string
+}
+
+export interface VaccineRecord {
+  id: string
+  type: 'vaccine'
+  babyId: string
+  name: string
+  plannedDate: string
+  actualDate?: string
+  status: 'planned' | 'done' | 'missed'
+  location?: string
+  note: string
+  createdBy: string
+}
+
+export interface CheckupRecord {
+  id: string
+  type: 'checkup'
+  babyId: string
+  timestamp: string
+  hospital: string
+  doctor?: string
+  items: string[]
+  result: string
+  attachments?: string[]
+  note: string
+  createdBy: string
+}
+
+export type HealthRecord = GrowthRecord | VaccineRecord | CheckupRecord
+
 export type ActivityRecord = FeedingRecord | SleepRecord | DiaperRecord
 
 export interface AppSettings {

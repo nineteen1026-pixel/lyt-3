@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, AppSettings, Family, FamilyMember, FamilyRole } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
-import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers } from '@/data/mock'
+import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers, mockGrowths, mockVaccines, mockCheckups } from '@/data/mock'
 
 const LS_KEYS = {
   family: 'baby-care:family',
@@ -9,6 +9,9 @@ const LS_KEYS = {
   feedings: 'baby-care:feedings',
   sleeps: 'baby-care:sleeps',
   diapers: 'baby-care:diapers',
+  growths: 'baby-care:growths',
+  vaccines: 'baby-care:vaccines',
+  checkups: 'baby-care:checkups',
   settings: 'baby-care:settings',
   currentBabyId: 'baby-care:current-baby-id',
   initialized: 'baby-care:initialized',
@@ -65,6 +68,9 @@ export const babies = ref<Baby[]>(loadLS<Baby[]>(LS_KEYS.babies, [defaultBabyWit
 export const feedings = ref<FeedingRecord[]>(initialized ? loadLS<FeedingRecord[]>(LS_KEYS.feedings, []) : [...mockFeedings])
 export const sleeps = ref<SleepRecord[]>(initialized ? loadLS<SleepRecord[]>(LS_KEYS.sleeps, []) : [...mockSleeps])
 export const diapers = ref<DiaperRecord[]>(initialized ? loadLS<DiaperRecord[]>(LS_KEYS.diapers, []) : [...mockDiapers])
+export const growths = ref<GrowthRecord[]>(initialized ? loadLS<GrowthRecord[]>(LS_KEYS.growths, []) : [...mockGrowths])
+export const vaccines = ref<VaccineRecord[]>(initialized ? loadLS<VaccineRecord[]>(LS_KEYS.vaccines, []) : [...mockVaccines])
+export const checkups = ref<CheckupRecord[]>(initialized ? loadLS<CheckupRecord[]>(LS_KEYS.checkups, []) : [...mockCheckups])
 export const settings = ref<AppSettings>(loadLS<AppSettings>(LS_KEYS.settings, defaultSettings))
 export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, babies.value[0]?.id || ''))
 
@@ -73,6 +79,9 @@ if (!initialized) {
   saveLS(LS_KEYS.feedings, feedings.value)
   saveLS(LS_KEYS.sleeps, sleeps.value)
   saveLS(LS_KEYS.diapers, diapers.value)
+  saveLS(LS_KEYS.growths, growths.value)
+  saveLS(LS_KEYS.vaccines, vaccines.value)
+  saveLS(LS_KEYS.checkups, checkups.value)
   saveLS(LS_KEYS.settings, settings.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   localStorage.setItem(LS_KEYS.initialized, 'true')
@@ -87,6 +96,9 @@ try {
     feedings.value = loadLS<FeedingRecord[]>(LS_KEYS.feedings, [])
     sleeps.value = loadLS<SleepRecord[]>(LS_KEYS.sleeps, [])
     diapers.value = loadLS<DiaperRecord[]>(LS_KEYS.diapers, [])
+    growths.value = loadLS<GrowthRecord[]>(LS_KEYS.growths, [])
+    vaccines.value = loadLS<VaccineRecord[]>(LS_KEYS.vaccines, [])
+    checkups.value = loadLS<CheckupRecord[]>(LS_KEYS.checkups, [])
     settings.value = loadLS<AppSettings>(LS_KEYS.settings, defaultSettings)
     currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
   }
@@ -100,6 +112,9 @@ export function persistData() {
   saveLS(LS_KEYS.feedings, feedings.value)
   saveLS(LS_KEYS.sleeps, sleeps.value)
   saveLS(LS_KEYS.diapers, diapers.value)
+  saveLS(LS_KEYS.growths, growths.value)
+  saveLS(LS_KEYS.vaccines, vaccines.value)
+  saveLS(LS_KEYS.checkups, checkups.value)
   saveLS(LS_KEYS.settings, settings.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })

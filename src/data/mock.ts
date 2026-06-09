@@ -1,4 +1,4 @@
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, AppSettings } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings } from '@/types'
 
 const now = new Date()
 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -101,4 +101,38 @@ export const mockDiapers: DiaperRecord[] = [
   { id: 'd23', type: 'diaper', babyId: DEFAULT_BABY_ID, timestamp: d(-6, 6, 15), diaperType: 'wet', note: '', createdBy: DEFAULT_USER_ID },
   { id: 'd24', type: 'diaper', babyId: DEFAULT_BABY_ID, timestamp: d(-6, 10, 45), diaperType: 'wet', note: '', createdBy: DEFAULT_USER_ID },
   { id: 'd25', type: 'diaper', babyId: DEFAULT_BABY_ID, timestamp: d(-6, 15, 15), diaperType: 'dirty', note: '', createdBy: DEFAULT_USER_ID },
+]
+
+export const mockGrowths: GrowthRecord[] = [
+  { id: 'g1', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-180, 10, 0), height: 50, weight: 3.3, headCircumference: 34, note: '出生', createdBy: DEFAULT_USER_ID },
+  { id: 'g2', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-150, 10, 0), height: 53, weight: 4.2, headCircumference: 35.5, note: '满月体检', createdBy: DEFAULT_USER_ID },
+  { id: 'g3', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-120, 10, 0), height: 56, weight: 5.1, headCircumference: 37, note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'g4', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-90, 10, 0), height: 59, weight: 5.8, headCircumference: 38.5, note: '3个月体检', createdBy: DEFAULT_USER_ID },
+  { id: 'g5', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-60, 10, 0), height: 62, weight: 6.5, headCircumference: 40, note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'g6', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(-30, 10, 0), height: 65, weight: 7.0, headCircumference: 41.5, note: '半岁体检', createdBy: DEFAULT_USER_ID },
+  { id: 'g7', type: 'growth', babyId: DEFAULT_BABY_ID, timestamp: d(0, 10, 0), height: 67, weight: 7.5, headCircumference: 42, note: '', createdBy: DEFAULT_USER_ID },
+]
+
+export const mockVaccines: VaccineRecord[] = [
+  { id: 'v1', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '乙肝疫苗（第1剂）', plannedDate: d(-180, 9, 0), actualDate: d(-180, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v2', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '卡介苗', plannedDate: d(-180, 9, 0), actualDate: d(-180, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v3', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '乙肝疫苗（第2剂）', plannedDate: d(-150, 9, 0), actualDate: d(-150, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v4', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '脊灰灭活疫苗（第1剂）', plannedDate: d(-120, 9, 0), actualDate: d(-120, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v5', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '百白破疫苗（第1剂）', plannedDate: d(-120, 9, 0), actualDate: d(-120, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v6', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '脊灰灭活疫苗（第2剂）', plannedDate: d(-90, 9, 0), actualDate: d(-90, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v7', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '百白破疫苗（第2剂）', plannedDate: d(-90, 9, 0), actualDate: d(-90, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v8', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '乙肝疫苗（第3剂）', plannedDate: d(-60, 9, 0), actualDate: d(-60, 9, 30), status: 'done', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v9', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: 'A群流脑疫苗（第1剂）', plannedDate: d(-60, 9, 0), status: 'done', actualDate: d(-60, 9, 30), location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v10', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '百白破疫苗（第3剂）', plannedDate: d(-30, 9, 0), status: 'done', actualDate: d(-30, 9, 30), location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v11', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '脊灰减毒疫苗（第3剂）', plannedDate: d(7, 9, 0), status: 'planned', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v12', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '麻腮风疫苗（第1剂）', plannedDate: d(30, 9, 0), status: 'planned', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v13', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '乙脑减毒疫苗（第1剂）', plannedDate: d(30, 9, 0), status: 'planned', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'v14', type: 'vaccine', babyId: DEFAULT_BABY_ID, name: '甲肝减毒疫苗', plannedDate: d(60, 9, 0), status: 'planned', location: '社区卫生中心', note: '', createdBy: DEFAULT_USER_ID },
+]
+
+export const mockCheckups: CheckupRecord[] = [
+  { id: 'c1', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-180, 9, 0), hospital: '市妇幼保健院', doctor: '王医生', items: ['新生儿筛查', '听力筛查', '体格检查'], result: '各项指标正常', note: '出生体检', createdBy: DEFAULT_USER_ID },
+  { id: 'c2', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-150, 9, 0), hospital: '社区卫生中心', doctor: '李医生', items: ['体格检查', '黄疸检测'], result: '黄疸已退，发育正常', note: '满月体检', createdBy: DEFAULT_USER_ID },
+  { id: 'c3', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-90, 9, 0), hospital: '市妇幼保健院', doctor: '王医生', items: ['体格检查', '髋关节B超', '视力筛查'], result: '髋关节正常，发育良好', note: '3个月体检', createdBy: DEFAULT_USER_ID },
+  { id: 'c4', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-30, 9, 0), hospital: '市妇幼保健院', doctor: '张医生', items: ['体格检查', '血常规', '微量元素'], result: '轻微缺铁，建议补充', note: '6个月体检', createdBy: DEFAULT_USER_ID },
 ]

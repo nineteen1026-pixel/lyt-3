@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { Home, Clock, BarChart3, Users, Settings } from 'lucide-vue-next'
+import { Home, Clock, BarChart3, Heart, Users, Settings } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,8 +9,8 @@ const tabs = [
   { name: 'dashboard', path: '/', icon: Home, label: '首页' },
   { name: 'history', path: '/history', icon: Clock, label: '记录' },
   { name: 'weekly', path: '/weekly', icon: BarChart3, label: '周报' },
+  { name: 'health', path: '/health', icon: Heart, label: '健康' },
   { name: 'family', path: '/family', icon: Users, label: '家庭' },
-  { name: 'settings', path: '/settings', icon: Settings, label: '设置' },
 ]
 
 function isActive(path: string) {
