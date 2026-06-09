@@ -1,96 +1,18 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, ActivityRecord, AppSettings, DaySummary } from '@/types'
-import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers } from '@/data/mock'
-import { useFamily } from '@/composables/useFamily'
-
-const STORAGE_KEYS = {
-  babies: 'baby-care:babies',
-  feedings: 'baby-care:feedings',
-  sleeps: 'baby-care:sleeps',
-  diapers: 'baby-care:diapers',
-  settings: 'baby-care:settings',
-  initialized: 'baby-care:initialized',
-  currentBabyId: 'baby-care:current-baby-id',
-  currentUserId: 'baby-care:current-user',
-}
-
-const SYNC_CHANNEL = 'baby-care:data-sync'
-
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function save(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value))
-}
-
-function genId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-}
-
-let dataSyncChannel: BroadcastChannel | null = null
+import {
+  babies, feedings, sleeps, diapers, settings, currentBabyId,
+  currentUserId, persist, genId, hasPermission,
+  canAddRecord, canDeleteRecord, canEditRecord, addBabyToFamily,
+  getMemberName,
+} from './useSharedStore'
 
 export function useBabyCare() {
-  const { currentUserId, addBabyToFamily } = useFamily()
+  const currentBaby = computed<Baby | undefined>(() =>
+    babies.value.find(b => b.id === currentBabyId.value)
+  )
 
-  const initialized = localStorage.getItem(STORAGE_KEYS.initialized)
-
-  const defaultBabyWithId: Baby = { ...defaultBaby, id: defaultBaby.id || genId() }
-  const babies = ref<Baby[]>(load(STORAGE_KEYS.babies, [defaultBabyWithId]))
-
-  const currentBabyId = ref<string>(load(STORAGE_KEYS.currentBabyId, babies.value[0]?.id || ''))
-
-  const feedings = ref<FeedingRecord[]>(initialized ? load(STORAGE_KEYS.feedings, []) : [...mockFeedings])
-  const sleeps = ref<SleepRecord[]>(initialized ? load(STORAGE_KEYS.sleeps, []) : [...mockSleeps])
-  const diapers = ref<DiaperRecord[]>(initialized ? load(STORAGE_KEYS.diapers, []) : [...mockDiapers])
-  const settings = ref<AppSettings>(load(STORAGE_KEYS.settings, defaultSettings))
-
-  if (!initialized) {
-    save(STORAGE_KEYS.babies, babies.value)
-    save(STORAGE_KEYS.feedings, feedings.value)
-    save(STORAGE_KEYS.sleeps, sleeps.value)
-    save(STORAGE_KEYS.diapers, diapers.value)
-    save(STORAGE_KEYS.settings, settings.value)
-    save(STORAGE_KEYS.currentBabyId, currentBabyId.value)
-    localStorage.setItem(STORAGE_KEYS.initialized, 'true')
-  }
-
-  if (!dataSyncChannel) {
-    try {
-      dataSyncChannel = new BroadcastChannel(SYNC_CHANNEL)
-      dataSyncChannel.onmessage = () => {
-        feedings.value = load(STORAGE_KEYS.feedings, [])
-        sleeps.value = load(STORAGE_KEYS.sleeps, [])
-        diapers.value = load(STORAGE_KEYS.diapers, [])
-        babies.value = load(STORAGE_KEYS.babies, [])
-      }
-    } catch {
-      dataSyncChannel = null
-    }
-  }
-
-  function persist() {
-    save(STORAGE_KEYS.babies, babies.value)
-    save(STORAGE_KEYS.feedings, feedings.value)
-    save(STORAGE_KEYS.sleeps, sleeps.value)
-    save(STORAGE_KEYS.diapers, diapers.value)
-    save(STORAGE_KEYS.settings, settings.value)
-    save(STORAGE_KEYS.currentBabyId, currentBabyId.value)
-    if (dataSyncChannel) {
-      dataSyncChannel.postMessage({ type: 'data-updated', timestamp: Date.now() })
-    }
-  }
-
-  const currentBaby = computed<Baby | undefined>(() => {
-    return babies.value.find(b => b.id === currentBabyId.value)
-  })
-
-  const baby = computed<Baby>(() => currentBaby.value || babies.value[0] || defaultBabyWithId)
+  const baby = computed<Baby>(() => currentBaby.value || babies.value[0] || babies.value[0])
 
   function switchBaby(babyId: string) {
     const target = babies.value.find(b => b.id === babyId)
@@ -136,7 +58,8 @@ export function useBabyCare() {
   }
 
   function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
-    if (!currentBabyId.value) return
+    if (!canAddRecord.value) return false
+    if (!currentBabyId.value) return false
     feedings.value.unshift({
       ...record,
       id: genId(),
@@ -145,10 +68,12 @@ export function useBabyCare() {
       createdBy: currentUserId.value,
     })
     persist()
+    return true
   }
 
   function addSleep(record: Omit<SleepRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
-    if (!currentBabyId.value) return
+    if (!canAddRecord.value) return false
+    if (!currentBabyId.value) return false
     sleeps.value.unshift({
       ...record,
       id: genId(),
@@ -157,10 +82,12 @@ export function useBabyCare() {
       createdBy: currentUserId.value,
     })
     persist()
+    return true
   }
 
   function addDiaper(record: Omit<DiaperRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
-    if (!currentBabyId.value) return
+    if (!canAddRecord.value) return false
+    if (!currentBabyId.value) return false
     diapers.value.unshift({
       ...record,
       id: genId(),
@@ -169,13 +96,27 @@ export function useBabyCare() {
       createdBy: currentUserId.value,
     })
     persist()
+    return true
+  }
+
+  function canDelete(id: string): boolean {
+    if (canDeleteRecord.value) return true
+    if (canEditRecord.value) {
+      const isOwner = feedings.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+        || sleeps.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+        || diapers.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+      return isOwner
+    }
+    return false
   }
 
   function deleteRecord(id: string) {
+    if (!canDelete(id)) return false
     feedings.value = feedings.value.filter(r => r.id !== id)
     sleeps.value = sleeps.value.filter(r => r.id !== id)
     diapers.value = diapers.value.filter(r => r.id !== id)
     persist()
+    return true
   }
 
   function updateSettings(data: Partial<AppSettings>) {
@@ -215,17 +156,14 @@ export function useBabyCare() {
       const t = new Date(r.timestamp).getTime()
       return t >= dayStart && t < dayEnd
     })
-
     const daySleeps = currentSleeps.value.filter(r => {
       const t = new Date(r.startTime).getTime()
       return t >= dayStart && t < dayEnd
     })
-
     const dayDiapers = currentDiapers.value.filter(r => {
       const t = new Date(r.timestamp).getTime()
       return t >= dayStart && t < dayEnd
     })
-
     const sleepMinutes = daySleeps.reduce((acc, s) => {
       const diff = new Date(s.endTime).getTime() - new Date(s.startTime).getTime()
       return acc + diff / 60000
@@ -264,6 +202,11 @@ export function useBabyCare() {
     allActivities,
     todaySummary,
     recentActivities,
+    canAddRecord,
+    canDeleteRecord,
+    canEditRecord,
+    canDelete,
+    getMemberName,
     switchBaby,
     addBaby,
     updateBaby,

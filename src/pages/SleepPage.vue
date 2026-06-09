@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Moon, Check } from 'lucide-vue-next'
+import { ArrowLeft, Moon, Check, Eye } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 
 const router = useRouter()
-const { addSleep } = useBabyCare()
+const { addSleep, canAddRecord } = useBabyCare()
 
 const quality = ref<'deep' | 'light' | 'fussy'>('deep')
 const note = ref('')
@@ -67,7 +67,16 @@ const qualityOptions = [
       </h1>
     </header>
 
-    <div v-if="saved" class="flex flex-col items-center justify-center py-20">
+    <div v-if="!canAddRecord" class="flex flex-col items-center justify-center py-20">
+      <div class="w-16 h-16 rounded-full bg-cream-100 dark:bg-warm-500/20 flex items-center justify-center mb-4">
+        <Eye :size="32" class="text-warm-300 dark:text-warm-200" />
+      </div>
+      <p class="text-lg font-bold text-warm-400 dark:text-cream-100">无操作权限</p>
+      <p class="text-sm text-warm-300 dark:text-warm-200 mt-1">当前角色仅可查看记录</p>
+      <button @click="router.push('/family')" class="mt-4 px-5 py-2 rounded-xl bg-mint-400 text-white text-sm font-bold">前往家庭管理</button>
+    </div>
+
+    <div v-else-if="saved" class="flex flex-col items-center justify-center py-20">
       <div class="w-16 h-16 rounded-full bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center mb-4 animate-bounce">
         <Check :size="32" class="text-mint-500" />
       </div>

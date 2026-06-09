@@ -4,7 +4,7 @@ import { Milk, Moon, Droplets, Trash2, Filter } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
-const { allActivities, deleteRecord } = useBabyCare()
+const { allActivities, deleteRecord, canDelete, getMemberName } = useBabyCare()
 
 const filterType = ref<'all' | 'feeding' | 'sleep' | 'diaper'>('all')
 
@@ -66,6 +66,7 @@ const filterTabs = [
 const confirmDeleteId = ref<string | null>(null)
 
 function handleDelete(id: string) {
+  if (!canDelete(id)) return
   if (confirmDeleteId.value === id) {
     deleteRecord(id)
     confirmDeleteId.value = null
@@ -113,9 +114,13 @@ function handleDelete(id: string) {
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-warm-500 dark:text-cream-100 truncate">{{ getSummary(activity) }}</p>
-          <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ getTime(activity) }}</p>
+          <p class="text-[11px] text-warm-300 dark:text-warm-200">
+            {{ getTime(activity) }}
+            <span class="text-warm-200 dark:text-warm-300"> · {{ getMemberName(activity.createdBy) }}</span>
+          </p>
         </div>
         <button
+          v-if="canDelete(activity.id)"
           @click="handleDelete(activity.id)"
           class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
           :class="confirmDeleteId === activity.id

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeft, Users, UserPlus, Crown, Shield, User, Eye,
-  Copy, Check, Trash2, Plus, Baby, LogOut, AlertTriangle, X
+  Copy, Check, Trash2, Plus, Baby, LogOut, AlertTriangle, X, RefreshCw
 } from 'lucide-vue-next'
 import { useFamily } from '@/composables/useFamily'
 import { useBabyCare } from '@/composables/useBabyCare'
@@ -11,21 +11,25 @@ import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/types'
 import type { FamilyRole, FamilyMember } from '@/types'
 
 const router = useRouter()
-const { family, currentMember, currentRole, isOwner, isAdmin, hasPermission,
+const {
+  family, currentUserId, currentUserName, currentMember, currentRole,
+  isOwner, isAdmin, hasPermission, ROLE_LABELS: roleLabels,
   createFamily, updateFamilyName, inviteMember, joinFamilyByCode,
-  updateMemberRole, removeMember, leaveFamily, dissolveFamily } = useFamily()
+  updateMemberRole, removeMember, leaveFamily, dissolveFamily,
+  switchToMember, resetAsNewUser,
+} = useFamily()
 const { babies, addBaby } = useBabyCare()
 
 const showCreateFamily = ref(!family.value)
-const showJoinFamily = ref(false)
 const showInvite = ref(false)
 const showAddBaby = ref(false)
 const showRolePicker = ref<string | null>(null)
 const showConfirmDissolve = ref(false)
 const showConfirmLeave = ref(false)
+const showSwitchUser = ref(false)
 
 const newFamilyName = ref('')
-const newUserName = ref('')
+const newUserName = ref(currentUserName.value || '')
 const joinCode = ref('')
 const joinUserName = ref('')
 const inviteRole = ref<FamilyRole>('member')
@@ -36,6 +40,9 @@ const newBabyGender = ref<'male' | 'female'>('male')
 const editFamilyName = ref(family.value?.name || '')
 const savedFamilyName = ref(false)
 const joinResult = ref<{ success: boolean; message: string } | null>(null)
+
+const switchUserName = ref('')
+const switchMode = ref<'existing' | 'new'>('existing')
 
 const roleOptions: { value: FamilyRole; label: string; icon: typeof Crown; desc: string }[] = [
   { value: 'admin', label: '管理员', icon: Shield, desc: '可管理成员、宝宝，添加/编辑/删除记录' },
@@ -48,6 +55,11 @@ const memberRoleOptions: { value: FamilyRole; label: string; icon: typeof Crown 
   { value: 'member', label: '成员', icon: User },
   { value: 'viewer', label: '观察者', icon: Eye },
 ]
+
+const otherMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members.filter(m => m.id !== currentUserId.value)
+})
 
 function getRoleIcon(role: FamilyRole) {
   if (role === 'owner') return Crown
@@ -75,7 +87,7 @@ function handleJoinFamily() {
   joinResult.value = joinFamilyByCode(joinCode.value.trim().toUpperCase(), joinUserName.value.trim())
   if (joinResult.value.success) {
     setTimeout(() => {
-      showJoinFamily.value = false
+      showCreateFamily.value = false
       joinResult.value = null
       joinCode.value = ''
       joinUserName.value = ''
@@ -133,6 +145,18 @@ function handleDissolve() {
   showCreateFamily.value = true
 }
 
+function handleSwitchExisting(memberId: string) {
+  switchToMember(memberId)
+  showSwitchUser.value = false
+}
+
+function handleSwitchNew() {
+  if (!switchUserName.value.trim()) return
+  resetAsNewUser(switchUserName.value.trim())
+  showSwitchUser.value = false
+  showCreateFamily.value = true
+}
+
 function formatDate(iso: string) {
   const d = new Date(iso)
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
@@ -150,6 +174,26 @@ function formatDate(iso: string) {
         家庭管理
       </h1>
     </header>
+
+    <div v-if="family" class="mb-4 bg-peach-50 dark:bg-peach-500/10 rounded-2xl p-3 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center"
+        :class="getRoleColor(currentRole || 'member')">
+        <component :is="getRoleIcon(currentRole || 'member')" :size="16" />
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold text-warm-500 dark:text-cream-100 truncate">
+          {{ currentUserName || '未设置昵称' }}
+          <span class="text-[11px] font-normal text-warm-300 dark:text-warm-200 ml-1">
+            ({{ ROLE_LABELS[currentRole || 'member'] }})
+          </span>
+        </p>
+        <p class="text-[11px] text-warm-300 dark:text-warm-200 truncate">{{ currentUserId }}</p>
+      </div>
+      <button @click="showSwitchUser = true"
+        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#2a1f1a] text-peach-400 shadow-sm flex items-center gap-1">
+        <RefreshCw :size="12" /> 切换身份
+      </button>
+    </div>
 
     <div v-if="showCreateFamily && !family" class="space-y-6">
       <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-5 shadow-sm">
@@ -221,12 +265,6 @@ function formatDate(iso: string) {
             <p class="text-[11px] text-warm-300 dark:text-warm-200">创建于 {{ formatDate(family.createdAt) }} · {{ family.members.length }} 位成员</p>
           </div>
         </div>
-        <div v-if="currentMember" class="flex items-center gap-2 bg-cream-50 dark:bg-warm-500/10 rounded-xl px-3 py-2">
-          <span class="text-xs text-warm-300 dark:text-warm-200">当前身份：</span>
-          <span class="text-xs font-bold" :class="getRoleColor(currentMember.role)">
-            {{ currentMember.name }} · {{ ROLE_LABELS[currentMember.role] }}
-          </span>
-        </div>
       </section>
 
       <section>
@@ -241,18 +279,20 @@ function formatDate(iso: string) {
         </div>
         <div class="space-y-2">
           <div v-for="member in family.members" :key="member.id"
-            class="flex items-center gap-3 bg-white dark:bg-[#2a1f1a] rounded-xl px-3 py-3 shadow-sm relative">
+            class="flex items-center gap-3 bg-white dark:bg-[#2a1f1a] rounded-xl px-3 py-3 shadow-sm relative"
+            :class="member.id === currentUserId ? 'ring-2 ring-peach-300 dark:ring-peach-500/40' : ''">
             <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" :class="getRoleColor(member.role)">
               <component :is="getRoleIcon(member.role)" :size="16" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
                 {{ member.name }}
+                <span v-if="member.id === currentUserId" class="text-[10px] text-peach-400 ml-1">（我）</span>
                 <span v-if="member.id === family.ownerId" class="text-[10px] text-peach-400 ml-1">创建者</span>
               </p>
               <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ ROLE_LABELS[member.role] }} · 加入于 {{ formatDate(member.joinedAt) }}</p>
             </div>
-            <template v-if="isAdmin && member.id !== family.ownerId && member.id !== currentMember?.id">
+            <template v-if="isAdmin && member.id !== family.ownerId && member.id !== currentUserId">
               <button @click="showRolePicker = showRolePicker === member.id ? null : member.id"
                 class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors"
                 :class="getRoleColor(member.role)">
@@ -305,7 +345,7 @@ function formatDate(iso: string) {
           <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 flex items-center gap-1.5">
             <Baby :size="14" /> 宝宝列表
           </h2>
-          <button v-if="hasPermission('manage_babies')" @click="showAddBaby = true"
+          <button v-if="hasPermission('manage_babies') || hasPermission('add_record')" @click="showAddBaby = true"
             class="text-xs font-bold text-peach-400 flex items-center gap-1 hover:text-peach-500">
             <Plus :size="14" /> 添加
           </button>
@@ -351,6 +391,9 @@ function formatDate(iso: string) {
               <span v-else>{{ perm }}</span>
             </div>
           </div>
+          <div v-if="!hasPermission('add_record')" class="mt-3 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">
+            <p class="text-xs text-red-500 font-semibold">当前角色无法添加照护记录</p>
+          </div>
         </div>
       </section>
 
@@ -374,6 +417,48 @@ function formatDate(iso: string) {
       </section>
     </div>
 
+    <div v-if="showSwitchUser" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40" @click.self="showSwitchUser = false">
+      <div class="w-full max-w-lg bg-white dark:bg-[#2a1f1a] rounded-t-3xl p-5 pb-8 animate-slide-up">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-bold text-warm-500 dark:text-cream-100">模拟切换身份</h3>
+          <button @click="showSwitchUser = false" class="w-8 h-8 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+            <X :size="16" class="text-warm-300 dark:text-warm-200" />
+          </button>
+        </div>
+        <p class="text-xs text-warm-300 dark:text-warm-200 mb-4">在同一设备上模拟不同家庭成员使用，切换后将以该成员身份操作系统</p>
+
+        <div v-if="otherMembers.length > 0" class="mb-4">
+          <h4 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-2">切换到已有成员</h4>
+          <div class="space-y-2">
+            <button v-for="m in otherMembers" :key="m.id" @click="handleSwitchExisting(m.id)"
+              class="w-full flex items-center gap-3 rounded-xl px-3 py-3 bg-cream-50 dark:bg-warm-500/10 hover:bg-cream-100 dark:hover:bg-warm-500/20 transition-colors">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center" :class="getRoleColor(m.role)">
+                <component :is="getRoleIcon(m.role)" :size="14" />
+              </div>
+              <div class="text-left flex-1">
+                <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">{{ m.name }}</p>
+                <p class="text-[11px] text-warm-300 dark:text-warm-200">{{ ROLE_LABELS[m.role] }}</p>
+              </div>
+              <RefreshCw :size="14" class="text-warm-300 dark:text-warm-200" />
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-cream-200 dark:border-warm-500/20 pt-4">
+          <h4 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-2">模拟新用户加入</h4>
+          <div class="flex gap-2">
+            <input v-model="switchUserName" type="text" placeholder="输入新用户昵称"
+              class="flex-1 bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-4 py-2.5 text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300 text-sm" />
+            <button @click="handleSwitchNew" :disabled="!switchUserName.trim()"
+              class="px-4 py-2.5 rounded-xl font-bold text-sm bg-peach-400 hover:bg-peach-500 disabled:opacity-40 text-white transition-all">
+              加入
+            </button>
+          </div>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-1.5">新用户将退出当前家庭，需重新通过邀请码加入</p>
+        </div>
+      </div>
+    </div>
+
     <div v-if="showInvite" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40" @click.self="showInvite = false">
       <div class="w-full max-w-lg bg-white dark:bg-[#2a1f1a] rounded-t-3xl p-5 pb-8 animate-slide-up">
         <div class="flex items-center justify-between mb-4">
@@ -382,7 +467,7 @@ function formatDate(iso: string) {
             <X :size="16" class="text-warm-300 dark:text-warm-200" />
           </button>
         </div>
-        <p class="text-xs text-warm-300 dark:text-warm-200 mb-4">选择邀请角色后生成邀请码，将邀请码分享给家人即可加入</p>
+        <p class="text-xs text-warm-300 dark:text-warm-200 mb-4">选择邀请角色后生成邀请码，将邀请码分享给家人，对方在「加入家庭」中输入即可</p>
         <div class="space-y-2 mb-5">
           <button v-for="opt in roleOptions" :key="opt.value"
             @click="inviteRole = opt.value"
@@ -407,7 +492,7 @@ function formatDate(iso: string) {
     </div>
 
     <div v-if="showAddBaby" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40" @click.self="showAddBaby = false">
-      <div class="w-full max-w-lg bg-white dark:bg-[#2a1f1a] rounded-t-3xl p-5 pb-8">
+      <div class="w-full max-w-lg bg-white dark:bg-[#2a1f1a] rounded-t-3xl p-5 pb-8 animate-slide-up">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-bold text-warm-500 dark:text-cream-100">添加宝宝</h3>
           <button @click="showAddBaby = false" class="w-8 h-8 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">

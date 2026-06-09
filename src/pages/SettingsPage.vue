@@ -9,7 +9,7 @@ import { ROLE_LABELS } from '@/types'
 
 const router = useRouter()
 const { baby, babies, settings, updateCurrentBaby, updateSettings, feedings, sleeps, diapers, deleteBaby } = useBabyCare()
-const { family, currentMember } = useFamily()
+const { family, currentMember, currentUserName, currentRole } = useFamily()
 const { theme, toggleTheme, isDark } = useTheme()
 
 const editName = ref(baby.value.name)
@@ -101,7 +101,7 @@ function handleDeleteBaby(babyId: string) {
               </p>
               <p class="text-[11px] text-warm-300 dark:text-warm-200">
                 <template v-if="family">
-                  {{ family.members.length }} 位成员 · {{ ROLE_LABELS[currentMember?.role || 'member'] }}
+                  {{ currentUserName || '未设置昵称' }} · {{ ROLE_LABELS[currentRole || 'member'] }} · {{ family.members.length }} 位成员
                 </template>
                 <template v-else>邀请家人共同照护</template>
               </p>

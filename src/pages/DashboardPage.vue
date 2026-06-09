@@ -6,7 +6,7 @@ import { useBabyCare } from '@/composables/useBabyCare'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
-const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities } = useBabyCare()
+const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName } = useBabyCare()
 
 const showBabyPicker = ref(false)
 
@@ -137,28 +137,33 @@ function handleSwitchBaby(id: string) {
 
     <section class="mb-6">
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3">快速记录</h2>
-      <div class="flex gap-3">
-        <button
-          @click="router.push('/feeding')"
-          class="flex-1 flex items-center justify-center gap-2 bg-peach-400 hover:bg-peach-500 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-peach-200 dark:shadow-peach-500/20"
-        >
-          <Milk :size="18" />
-          喂奶
-        </button>
-        <button
-          @click="router.push('/sleep')"
-          class="flex-1 flex items-center justify-center gap-2 bg-mint-400 hover:bg-mint-500 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-mint-200 dark:shadow-mint-500/20"
-        >
-          <Moon :size="18" />
-          睡眠
-        </button>
-        <button
-          @click="router.push('/diaper')"
-          class="flex-1 flex items-center justify-center gap-2 bg-warm-300 hover:bg-warm-400 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-warm-100 dark:shadow-warm-500/20"
-        >
-          <Droplets :size="18" />
-          尿布
-        </button>
+      <template v-if="canAddRecord">
+        <div class="flex gap-3">
+          <button
+            @click="router.push('/feeding')"
+            class="flex-1 flex items-center justify-center gap-2 bg-peach-400 hover:bg-peach-500 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-peach-200 dark:shadow-peach-500/20"
+          >
+            <Milk :size="18" />
+            喂奶
+          </button>
+          <button
+            @click="router.push('/sleep')"
+            class="flex-1 flex items-center justify-center gap-2 bg-mint-400 hover:bg-mint-500 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-mint-200 dark:shadow-mint-500/20"
+          >
+            <Moon :size="18" />
+            睡眠
+          </button>
+          <button
+            @click="router.push('/diaper')"
+            class="flex-1 flex items-center justify-center gap-2 bg-warm-300 hover:bg-warm-400 text-white rounded-2xl py-3 font-bold text-sm transition-all active:scale-95 shadow-md shadow-warm-100 dark:shadow-warm-500/20"
+          >
+            <Droplets :size="18" />
+            尿布
+          </button>
+        </div>
+      </template>
+      <div v-else class="bg-cream-100 dark:bg-warm-500/10 rounded-2xl py-3 text-center">
+        <p class="text-xs text-warm-300 dark:text-warm-200">当前角色无添加记录权限</p>
       </div>
     </section>
 
@@ -180,6 +185,7 @@ function handleSwitchBaby(id: string) {
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-warm-500 dark:text-cream-100 truncate">{{ getActivitySummary(activity) }}</p>
+            <p class="text-[10px] text-warm-300 dark:text-warm-200">by {{ getMemberName(activity.createdBy) }}</p>
           </div>
           <span class="text-xs text-warm-300 dark:text-warm-200 shrink-0">{{ getActivityTime(activity) }}</span>
         </div>
