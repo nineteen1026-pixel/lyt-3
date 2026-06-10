@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
@@ -199,6 +199,22 @@ function handleSwitchBaby(id: string) {
             <template v-if="pendingMissed.length > 0">{{ pendingMissed.length }}项漏记 · </template>
             历史规律分析 · 智能推送
           </p>
+        </div>
+        <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+      </button>
+    </section>
+
+    <section class="mb-6">
+      <button
+        @click="router.push('/knowledge')"
+        class="w-full flex items-center gap-3 bg-gradient-to-r from-mint-50 to-peach-50 dark:from-mint-500/10 dark:to-peach-500/10 rounded-2xl px-4 py-3 shadow-sm"
+      >
+        <div class="w-9 h-9 rounded-xl bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center">
+          <BookOpen :size="18" class="text-mint-500" />
+        </div>
+        <div class="flex-1 text-left">
+          <p class="text-sm font-bold text-warm-500 dark:text-cream-100">知识库与照护指南</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">按月龄推荐 · 喂养睡眠护理 · 发育里程碑</p>
         </div>
         <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
       </button>

@@ -10,6 +10,7 @@ import FamilyPage from '@/pages/FamilyPage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
 import ReminderCenterPage from '@/pages/ReminderCenterPage.vue'
 import MonthlyReportPage from '@/pages/MonthlyReportPage.vue'
+import KnowledgePage from '@/pages/KnowledgePage.vue'
 
 const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
@@ -20,6 +21,7 @@ const routes = [
   { path: '/weekly', name: 'weekly', component: WeeklyPage },
   { path: '/monthly-report', name: 'monthly-report', component: MonthlyReportPage },
   { path: '/health', name: 'health', component: HealthPage },
+  { path: '/knowledge', name: 'knowledge', component: KnowledgePage },
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
   { path: '/family', name: 'family', component: FamilyPage },

@@ -231,3 +231,40 @@ export const ROLE_PERMISSIONS: Record<FamilyRole, string[]> = {
   member: ['add_record', 'edit_own', 'view_record', 'export_data'],
   viewer: ['view_record'],
 }
+
+export type KnowledgeCategory = 'feeding' | 'sleep' | 'care' | 'milestone'
+
+export interface AgeRange {
+  minMonth: number
+  maxMonth: number
+  label: string
+}
+
+export interface CareGuide {
+  id: string
+  category: KnowledgeCategory
+  title: string
+  summary: string
+  content: string
+  tips: string[]
+  warnings?: string[]
+}
+
+export interface KnowledgeEntry {
+  ageRange: AgeRange
+  guides: CareGuide[]
+}
+
+export const KNOWLEDGE_CATEGORY_LABELS: Record<KnowledgeCategory, string> = {
+  feeding: '喂养指南',
+  sleep: '睡眠指南',
+  care: '护理要点',
+  milestone: '发育里程碑',
+}
+
+export const KNOWLEDGE_CATEGORY_ICONS: Record<KnowledgeCategory, string> = {
+  feeding: 'Milk',
+  sleep: 'Moon',
+  care: 'Heart',
+  milestone: 'Star',
+}
