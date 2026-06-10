@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -21,6 +21,9 @@ const LS_KEYS = {
   currentBabyId: 'baby-care:current-baby-id',
   initialized: 'baby-care:initialized',
   sleepGoals: 'baby-care:sleep-goals',
+  photoDiaryEntries: 'baby-care:photo-diary-entries',
+  milestones: 'baby-care:milestones',
+  familyComments: 'baby-care:family-comments',
 }
 
 const SS_KEYS = {
@@ -85,6 +88,9 @@ export const medicineUsages = ref<MedicineUsage[]>(loadLS<MedicineUsage[]>(LS_KE
 export const stockChanges = ref<StockChangeRecord[]>(loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, []))
 export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, ''))
 export const sleepGoals = ref<SleepGoal[]>(loadLS<SleepGoal[]>(LS_KEYS.sleepGoals, []))
+export const photoDiaryEntries = ref<PhotoDiaryEntry[]>(loadLS<PhotoDiaryEntry[]>(LS_KEYS.photoDiaryEntries, []))
+export const milestones = ref<Milestone[]>(loadLS<Milestone[]>(LS_KEYS.milestones, []))
+export const familyComments = ref<FamilyComment[]>(loadLS<FamilyComment[]>(LS_KEYS.familyComments, []))
 
 if (!initialized) {
   localStorage.setItem(LS_KEYS.initialized, 'true')
@@ -110,6 +116,9 @@ try {
     stockChanges.value = loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, [])
     currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
     sleepGoals.value = loadLS<SleepGoal[]>(LS_KEYS.sleepGoals, [])
+    photoDiaryEntries.value = loadLS<PhotoDiaryEntry[]>(LS_KEYS.photoDiaryEntries, [])
+    milestones.value = loadLS<Milestone[]>(LS_KEYS.milestones, [])
+    familyComments.value = loadLS<FamilyComment[]>(LS_KEYS.familyComments, [])
   }
 } catch {
   syncChannel = null
@@ -132,6 +141,9 @@ export function persistData() {
   saveLS(LS_KEYS.stockChanges, stockChanges.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   saveLS(LS_KEYS.sleepGoals, sleepGoals.value)
+  saveLS(LS_KEYS.photoDiaryEntries, photoDiaryEntries.value)
+  saveLS(LS_KEYS.milestones, milestones.value)
+  saveLS(LS_KEYS.familyComments, familyComments.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
 

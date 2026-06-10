@@ -526,6 +526,67 @@ export interface SleepPatternDeviation {
   description: string
 }
 
+export type MilestoneCategory = 'first' | 'physical' | 'social' | 'language' | 'cognitive'
+
+export interface Milestone {
+  id: string
+  babyId: string
+  category: MilestoneCategory
+  title: string
+  description: string
+  achievedDate: string
+  photoUrl?: string
+  note: string
+  createdBy: string
+  createdAt: string
+}
+
+export const MILESTONE_CATEGORY_LABELS: Record<MilestoneCategory, string> = {
+  first: '第一次',
+  physical: '大运动',
+  social: '社交情感',
+  language: '语言沟通',
+  cognitive: '认知发展',
+}
+
+export const MILESTONE_CATEGORY_ICONS: Record<MilestoneCategory, string> = {
+  first: 'Sparkles',
+  physical: 'Footprints',
+  social: 'Smile',
+  language: 'MessageCircle',
+  cognitive: 'Brain',
+}
+
+export interface FamilyComment {
+  id: string
+  targetId: string
+  targetType: 'photo' | 'milestone'
+  authorId: string
+  content: string
+  createdAt: string
+}
+
+export interface PhotoDiaryEntry {
+  id: string
+  type: 'photo'
+  babyId: string
+  timestamp: string
+  photoUrl: string
+  caption: string
+  note: string
+  milestoneId?: string
+  comments: FamilyComment[]
+  createdBy: string
+  caregiverId: string
+}
+
+export interface TimelineDay {
+  date: string
+  photos: PhotoDiaryEntry[]
+  milestones: Milestone[]
+  dayNotes: string[]
+}
+
 export interface WeeklySleepPatternReport {
   avgBedtime: string | null
   avgWakeTime: string | null

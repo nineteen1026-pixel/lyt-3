@@ -14,6 +14,7 @@ import KnowledgePage from '@/pages/KnowledgePage.vue'
 import MedicinePage from '@/pages/MedicinePage.vue'
 import DataRecoveryPage from '@/pages/DataRecoveryPage.vue'
 import OnboardingPage from '@/pages/OnboardingPage.vue'
+import TimelinePage from '@/pages/TimelinePage.vue'
 import { checkOnboardingStatus } from '@/composables/useOnboarding'
 
 const routes = [
@@ -27,6 +28,7 @@ const routes = [
   { path: '/health', name: 'health', component: HealthPage },
   { path: '/knowledge', name: 'knowledge', component: KnowledgePage },
   { path: '/medicine', name: 'medicine', component: MedicinePage },
+  { path: '/timeline', name: 'timeline', component: TimelinePage },
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
   { path: '/data-recovery', name: 'data-recovery', component: DataRecoveryPage },
