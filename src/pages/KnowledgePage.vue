@@ -3,18 +3,20 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeft, BookOpen, Milk, Moon, Heart, Star, ChevronRight,
-  Lightbulb, AlertTriangle, ChevronDown, Baby,
+  Lightbulb, AlertTriangle, ChevronDown, Baby, AlertCircle, Sparkles, Info,
 } from 'lucide-vue-next'
 import { useKnowledgeBase } from '@/composables/useKnowledgeBase'
 import { knowledgeEntries } from '@/data/knowledgeBase'
-import type { KnowledgeCategory, CareGuide } from '@/types'
+import type { KnowledgeCategory, CareGuide, GuideWithRelevance, GuideInsight } from '@/types'
 import { KNOWLEDGE_CATEGORY_LABELS } from '@/types'
 
 const router = useRouter()
 const {
   babyAgeMonths, activeMonth, allAgeRanges,
   currentEntry, currentAgeLabel, activeCategory,
-  currentGuides, categoryGuideCounts,
+  currentGuides, guidesWithRelevance, insights,
+  categoryGuideCounts, categoryInsightCounts,
+  dangerCount, warningCount,
   selectedMonth, selectMonth, resetToBabyAge,
 } = useKnowledgeBase()
 
@@ -63,6 +65,24 @@ function getCategoryColor(category: KnowledgeCategory) {
   }
 }
 
+function getInsightLevelColor(level: GuideInsight['level']) {
+  if (level === 'danger') return 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30'
+  if (level === 'warning') return 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30'
+  return 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30'
+}
+
+function getInsightLevelIcon(level: GuideInsight['level']) {
+  if (level === 'danger') return AlertCircle
+  if (level === 'warning') return AlertTriangle
+  return Info
+}
+
+function getInsightLevelTextColor(level: GuideInsight['level']) {
+  if (level === 'danger') return 'text-red-500'
+  if (level === 'warning') return 'text-amber-500'
+  return 'text-blue-500'
+}
+
 function toggleGuide(id: string) {
   expandedGuide.value = expandedGuide.value === id ? null : id
 }
@@ -70,6 +90,17 @@ function toggleGuide(id: string) {
 function handleSelectMonth(month: number) {
   selectMonth(month)
   showAgePicker.value = false
+}
+
+function getGuidePriorityLabel(item: GuideWithRelevance) {
+  if (item.insights.length === 0) return null
+  const maxLevel = item.insights.reduce((max, ins) => {
+    const order = { info: 0, warning: 1, danger: 2 }
+    return order[ins.level] > order[max] ? ins.level : max
+  }, 'info' as GuideInsight['level'])
+  if (maxLevel === 'danger') return { text: '重点关注', cls: 'bg-red-100 dark:bg-red-500/20 text-red-500' }
+  if (maxLevel === 'warning') return { text: '建议关注', cls: 'bg-amber-100 dark:bg-amber-500/20 text-amber-500' }
+  return { text: '温馨提示', cls: 'bg-blue-100 dark:bg-blue-500/20 text-blue-500' }
 }
 
 const ageRanges = knowledgeEntries.map(e => e.ageRange)
@@ -131,13 +162,38 @@ const ageRanges = knowledgeEntries.map(e => e.ageRange)
       </div>
     </section>
 
+    <section v-if="insights.length > 0" class="mb-4">
+      <div class="bg-gradient-to-r from-amber-50 to-red-50 dark:from-amber-500/10 dark:to-red-500/10 rounded-2xl p-4 border border-amber-200/60 dark:border-amber-500/20">
+        <div class="flex items-center gap-2 mb-3">
+          <Sparkles :size="16" class="text-amber-500" />
+          <span class="text-sm font-bold text-warm-500 dark:text-cream-100">个性化分析</span>
+          <span v-if="dangerCount > 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-100 dark:bg-red-500/20 text-red-500">{{ dangerCount }}项需关注</span>
+          <span v-if="warningCount > 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-500">{{ warningCount }}项提醒</span>
+        </div>
+        <div class="space-y-2">
+          <div
+            v-for="ins in insights"
+            :key="ins.id"
+            class="flex items-start gap-2 rounded-xl px-3 py-2 border"
+            :class="getInsightLevelColor(ins.level)"
+          >
+            <component :is="getInsightLevelIcon(ins.level)" :size="14" :class="getInsightLevelTextColor(ins.level)" class="shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold" :class="getInsightLevelTextColor(ins.level)">{{ ins.title }}</p>
+              <p class="text-[10px] text-warm-400 dark:text-warm-100 mt-0.5">{{ ins.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="mb-4">
       <div class="flex gap-1 bg-cream-100 dark:bg-warm-500/10 rounded-xl p-1 overflow-x-auto">
         <button
           v-for="tab in categoryTabs"
           :key="tab.key"
           @click="activeCategory = tab.key"
-          class="flex items-center justify-center gap-1 py-2 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+          class="flex items-center justify-center gap-1 py-2 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap relative"
           :class="activeCategory === tab.key
             ? 'bg-white dark:bg-[#2a1f1a] text-peach-500 shadow-sm'
             : 'text-warm-300 dark:text-warm-200'"
@@ -145,6 +201,11 @@ const ageRanges = knowledgeEntries.map(e => e.ageRange)
           <component :is="tab.icon" :size="12" />
           {{ tab.label }}
           <span v-if="categoryGuideCounts[tab.key] > 0" class="text-[10px] opacity-60">{{ categoryGuideCounts[tab.key] }}</span>
+          <span
+            v-if="categoryInsightCounts[tab.key] > 0"
+            class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center text-white"
+            :class="insights.filter(i => i.category === tab.key && i.level === 'danger').length > 0 ? 'bg-red-500' : 'bg-amber-400'"
+          >{{ categoryInsightCounts[tab.key] }}</span>
         </button>
       </div>
     </section>
@@ -156,40 +217,84 @@ const ageRanges = knowledgeEntries.map(e => e.ageRange)
 
     <section v-else class="space-y-3 pb-24">
       <div
-        v-for="guide in currentGuides"
-        :key="guide.id"
+        v-for="item in currentGuides"
+        :key="item.guide.id"
         class="bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm overflow-hidden border"
-        :class="getCategoryColor(guide.category).border"
+        :class="[
+          getCategoryColor(item.guide.category).border,
+          item.insights.length > 0 ? 'ring-1' : '',
+          item.insights.some(i => i.level === 'danger') ? 'ring-red-200 dark:ring-red-500/30' :
+          item.insights.some(i => i.level === 'warning') ? 'ring-amber-200 dark:ring-amber-500/30' :
+          item.insights.length > 0 ? 'ring-blue-200 dark:ring-blue-500/30' : ''
+        ]"
       >
         <button
-          @click="toggleGuide(guide.id)"
+          @click="toggleGuide(item.guide.id)"
           class="w-full flex items-start gap-3 p-4 text-left"
         >
-          <div
-            class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            :class="getCategoryColor(guide.category).bg"
-          >
-            <component :is="getCategoryIcon(guide.category)" :size="20" :class="getCategoryColor(guide.category).text" />
+          <div class="relative">
+            <div
+              class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              :class="getCategoryColor(item.guide.category).bg"
+            >
+              <component :is="getCategoryIcon(item.guide.category)" :size="20" :class="getCategoryColor(item.guide.category).text" />
+            </div>
+            <div
+              v-if="item.insights.length > 0"
+              class="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+              :class="item.insights.some(i => i.level === 'danger') ? 'bg-red-500' : item.insights.some(i => i.level === 'warning') ? 'bg-amber-400' : 'bg-blue-400'"
+            >
+              <span class="text-[8px] font-bold text-white">{{ item.insights.length }}</span>
+            </div>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md" :class="getCategoryColor(guide.category).badge">
-                {{ KNOWLEDGE_CATEGORY_LABELS[guide.category] }}
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md" :class="getCategoryColor(item.guide.category).badge">
+                {{ KNOWLEDGE_CATEGORY_LABELS[item.guide.category] }}
+              </span>
+              <span
+                v-if="getGuidePriorityLabel(item)"
+                class="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                :class="getGuidePriorityLabel(item)!.cls"
+              >
+                {{ getGuidePriorityLabel(item)!.text }}
               </span>
             </div>
-            <p class="text-sm font-bold text-warm-500 dark:text-cream-100 mb-0.5">{{ guide.title }}</p>
-            <p class="text-xs text-warm-300 dark:text-warm-200 line-clamp-2">{{ guide.summary }}</p>
+            <p class="text-sm font-bold text-warm-500 dark:text-cream-100 mb-0.5">{{ item.guide.title }}</p>
+            <p class="text-xs text-warm-300 dark:text-warm-200 line-clamp-2">{{ item.guide.summary }}</p>
           </div>
           <ChevronRight
             :size="16"
             class="text-warm-300 dark:text-warm-200 shrink-0 mt-3 transition-transform"
-            :class="expandedGuide === guide.id ? 'rotate-90' : ''"
+            :class="expandedGuide === item.guide.id ? 'rotate-90' : ''"
           />
         </button>
 
-        <div v-if="expandedGuide === guide.id" class="px-4 pb-4">
+        <div v-if="expandedGuide === item.guide.id" class="px-4 pb-4">
           <div class="border-t border-cream-100 dark:border-warm-500/10 pt-3">
-            <p class="text-sm text-warm-400 dark:text-warm-100 leading-relaxed mb-4">{{ guide.content }}</p>
+
+            <div v-if="item.insights.length > 0" class="mb-4">
+              <div class="flex items-center gap-1.5 mb-2">
+                <Sparkles :size="14" class="text-amber-500" />
+                <span class="text-xs font-bold text-amber-500">与宝宝记录相关</span>
+              </div>
+              <div class="space-y-1.5">
+                <div
+                  v-for="ins in item.insights"
+                  :key="ins.id"
+                  class="flex items-start gap-2 rounded-xl px-3 py-2 border"
+                  :class="getInsightLevelColor(ins.level)"
+                >
+                  <component :is="getInsightLevelIcon(ins.level)" :size="12" :class="getInsightLevelTextColor(ins.level)" class="shrink-0 mt-0.5" />
+                  <div>
+                    <p class="text-[11px] font-bold" :class="getInsightLevelTextColor(ins.level)">{{ ins.title }}</p>
+                    <p class="text-[10px] text-warm-400 dark:text-warm-100">{{ ins.description }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-sm text-warm-400 dark:text-warm-100 leading-relaxed mb-4">{{ item.guide.content }}</p>
 
             <div class="mb-3">
               <div class="flex items-center gap-1.5 mb-2">
@@ -198,24 +303,34 @@ const ageRanges = knowledgeEntries.map(e => e.ageRange)
               </div>
               <div class="space-y-1.5">
                 <div
-                  v-for="(tip, i) in guide.tips"
+                  v-for="(tip, i) in item.guide.tips"
                   :key="i"
-                  class="flex items-start gap-2 bg-mint-50 dark:bg-mint-500/10 rounded-xl px-3 py-2"
+                  class="flex items-start gap-2 rounded-xl px-3 py-2"
+                  :class="item.highlightedTipIndices.includes(i)
+                    ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-200 dark:ring-amber-500/30'
+                    : 'bg-mint-50 dark:bg-mint-500/10'"
                 >
-                  <span class="text-[10px] font-bold text-mint-500 shrink-0 mt-0.5">{{ i + 1 }}</span>
+                  <span
+                    class="text-[10px] font-bold shrink-0 mt-0.5"
+                    :class="item.highlightedTipIndices.includes(i) ? 'text-amber-500' : 'text-mint-500'"
+                  >{{ i + 1 }}</span>
                   <span class="text-xs text-warm-400 dark:text-warm-100">{{ tip }}</span>
+                  <span
+                    v-if="item.highlightedTipIndices.includes(i)"
+                    class="text-[8px] font-bold shrink-0 mt-0.5 px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-500"
+                  >相关</span>
                 </div>
               </div>
             </div>
 
-            <div v-if="guide.warnings && guide.warnings.length > 0">
+            <div v-if="item.guide.warnings && item.guide.warnings.length > 0">
               <div class="flex items-center gap-1.5 mb-2">
                 <AlertTriangle :size="14" class="text-amber-500" />
                 <span class="text-xs font-bold text-amber-500">注意事项</span>
               </div>
               <div class="space-y-1.5">
                 <div
-                  v-for="(warning, i) in guide.warnings"
+                  v-for="(warning, i) in item.guide.warnings"
                   :key="i"
                   class="flex items-start gap-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl px-3 py-2"
                 >

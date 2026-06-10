@@ -232,7 +232,25 @@ export const ROLE_PERMISSIONS: Record<FamilyRole, string[]> = {
   viewer: ['view_record'],
 }
 
+export type InsightLevel = 'warning' | 'danger' | 'info'
+
 export type KnowledgeCategory = 'feeding' | 'sleep' | 'care' | 'milestone'
+
+export interface GuideInsight {
+  id: string
+  category: KnowledgeCategory
+  level: InsightLevel
+  title: string
+  description: string
+  relatedGuideId: string
+}
+
+export interface GuideWithRelevance {
+  guide: CareGuide
+  priority: number
+  insights: GuideInsight[]
+  highlightedTipIndices: number[]
+}
 
 export interface AgeRange {
   minMonth: number
