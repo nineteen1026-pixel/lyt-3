@@ -317,7 +317,7 @@ const trendData = computed(() => {
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm font-bold text-warm-500 dark:text-cream-100">{{ formatDate(record.timestamp) }}</span>
-            <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ getMemberName(record.createdBy) }}</span>
+            <span class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName(record.caregiverId) }}</span>
           </div>
           <div class="flex gap-4">
             <span class="text-xs text-peach-500 font-semibold">身高 {{ record.height }}cm</span>
@@ -582,7 +582,7 @@ const trendData = computed(() => {
         >
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm font-bold text-warm-500 dark:text-cream-100">{{ formatDate(record.timestamp) }}</span>
-            <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ getMemberName(record.createdBy) }}</span>
+            <span class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName(record.caregiverId) }}</span>
           </div>
           <div class="flex items-center gap-2 mb-1">
             <span class="text-[10px] text-warm-300 dark:text-warm-200 flex items-center gap-0.5">

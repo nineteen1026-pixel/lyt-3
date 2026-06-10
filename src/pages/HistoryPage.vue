@@ -206,7 +206,7 @@ function handleDelete(id: string) {
           <p class="text-sm font-semibold text-warm-500 dark:text-cream-100 truncate">{{ getSummary(activity) }}</p>
           <p class="text-[11px] text-warm-300 dark:text-warm-200">
             {{ getTime(activity) }}
-            <span class="text-warm-200 dark:text-warm-300"> · {{ getMemberName(activity.createdBy) }}</span>
+            <span class="text-warm-200 dark:text-warm-300"> · 照护: {{ getMemberName((activity as any).caregiverId) }}</span>
           </p>
         </div>
         <button

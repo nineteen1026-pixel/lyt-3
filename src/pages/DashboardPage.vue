@@ -307,7 +307,7 @@ function handleSwitchBaby(id: string) {
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-warm-500 dark:text-cream-100 truncate">{{ getActivitySummary(activity) }}</p>
-            <p class="text-[10px] text-warm-300 dark:text-warm-200">by {{ getMemberName(activity.createdBy) }}</p>
+            <p class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName((activity as any).caregiverId) }}</p>
           </div>
           <span class="text-xs text-warm-300 dark:text-warm-200 shrink-0">{{ getActivityTime(activity) }}</span>
         </div>
