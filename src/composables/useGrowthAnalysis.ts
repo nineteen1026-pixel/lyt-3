@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import type { DailyComparison, ConsecutiveTrend, AnomalyDay, GrowthAdvice, GrowthAnalysis, DaySummary } from '@/types'
+import type { DailyComparison, ConsecutiveTrend, AnomalyDay, GrowthAdvice, GrowthAnalysis, DaySummary, SleepPatternDeviation, WeeklySleepPatternReport, SleepGoalDailyAchievement } from '@/types'
 import { useBabyCare } from './useBabyCare'
 import { babies, currentBabyId } from './useSharedStore'
 
@@ -355,6 +355,137 @@ export function useGrowthAnalysis() {
   const dangerCount = computed(() => analysis.value.anomalyDays.filter(a => a.level === 'danger').length)
   const warningCount = computed(() => analysis.value.anomalyDays.filter(a => a.level === 'warning').length)
 
+  const weeklySleepStats = computed(() => {
+    const { getSleepGoalWeeklyStats } = useBabyCare()
+    return getSleepGoalWeeklyStats(7, filterCaregiverId.value)
+  })
+
+  function getConsistencyLevel(stdDev: number): 'excellent' | 'good' | 'fair' | 'poor' {
+    if (stdDev <= 15) return 'excellent'
+    if (stdDev <= 30) return 'good'
+    if (stdDev <= 60) return 'fair'
+    return 'poor'
+  }
+
+  function getDeviationSeverity(score: number): 'normal' | 'mild' | 'moderate' | 'severe' {
+    if (score <= 20) return 'normal'
+    if (score <= 40) return 'mild'
+    if (score <= 60) return 'moderate'
+    return 'severe'
+  }
+
+  function buildDeviationDescription(d: SleepGoalDailyAchievement): string {
+    const parts: string[] = []
+    if (Math.abs(d.bedtimeDeviationMin) > 30) {
+      const dir = d.bedtimeDeviationMin > 0 ? '晚睡' : '早睡'
+      parts.push(`${dir}${Math.abs(d.bedtimeDeviationMin)}分钟`)
+    }
+    if (Math.abs(d.wakeTimeDeviationMin) > 30) {
+      const dir = d.wakeTimeDeviationMin > 0 ? '晚起' : '早起'
+      parts.push(`${dir}${Math.abs(d.wakeTimeDeviationMin)}分钟`)
+    }
+    if (Math.abs(d.sleepHoursDeviationMin) > 60) {
+      const dir = d.sleepHoursDeviationMin > 0 ? '超出' : '不足'
+      parts.push(`睡眠时长${dir}${Math.round(Math.abs(d.sleepHoursDeviationMin) / 60)}小时`)
+    }
+    if (parts.length === 0) return '作息基本符合目标'
+    return parts.join('，')
+  }
+
+  const weeklySleepPatternReport = computed<WeeklySleepPatternReport | null>(() => {
+    const stats = weeklySleepStats.value
+    if (!stats) return null
+    const { currentSleepGoal } = useBabyCare()
+    const goal = currentSleepGoal.value
+    const deviations: SleepPatternDeviation[] = stats.dailyAchievements.map(d => {
+      const bedtimeScore = Math.min(100, Math.abs(d.bedtimeDeviationMin) / 60 * 40)
+      const wakeTimeScore = Math.min(100, Math.abs(d.wakeTimeDeviationMin) / 60 * 40)
+      const sleepHoursScore = Math.min(100, Math.abs(d.sleepHoursDeviationMin) / 120 * 40)
+      const overallScore = (bedtimeScore + wakeTimeScore + sleepHoursScore) / 3
+      return {
+        date: d.date,
+        bedtimeDeviationMin: d.bedtimeDeviationMin,
+        wakeTimeDeviationMin: d.wakeTimeDeviationMin,
+        sleepHoursDeviationMin: d.sleepHoursDeviationMin,
+        overallDeviationScore: parseFloat(overallScore.toFixed(0)),
+        severity: getDeviationSeverity(overallScore),
+        description: buildDeviationDescription(d),
+      }
+    })
+    const validAchievements = stats.dailyAchievements.filter(a => a.bedtime !== null || a.wakeTime !== null)
+    const bedtimeMinutes = validAchievements
+      .map(a => {
+        if (!a.bedtime) return null
+        const [h, m] = a.bedtime.split(':').map(Number)
+        return h * 60 + m
+      })
+      .filter((v): v is number => v !== null)
+    const wakeTimeMinutes = validAchievements
+      .map(a => {
+        if (!a.wakeTime) return null
+        const [h, m] = a.wakeTime.split(':').map(Number)
+        return h * 60 + m
+      })
+      .filter((v): v is number => v !== null)
+    function avg(arr: number[]) {
+      return arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+    }
+    function minToStr(min: number) {
+      if (!isFinite(min)) return null
+      const h = Math.floor(((min % 1440) + 1440) % 1440 / 60)
+      const m = Math.round(((min % 1440) + 1440) % 1440 % 60)
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+    }
+    const avgBedtime = bedtimeMinutes.length > 0 ? minToStr(avg(bedtimeMinutes)) : null
+    const avgWakeTime = wakeTimeMinutes.length > 0 ? minToStr(avg(wakeTimeMinutes)) : null
+    const avgSleep = validAchievements.length > 0
+      ? parseFloat((validAchievements.reduce((a, d) => a + d.sleepHours, 0) / validAchievements.length).toFixed(1))
+      : 0
+    const sortedByScore = [...deviations].sort((a, b) => a.overallDeviationScore - b.overallDeviationScore)
+    const bestDay = sortedByScore[0]?.date || null
+    const worstDay = sortedByScore[sortedByScore.length - 1]?.date || null
+    const suggestions: string[] = []
+    const babyAge = getBabyAgeMonths()
+    const bedtimeConsist = getConsistencyLevel(stats.bedtimeStandardDeviationMin)
+    const wakeTimeConsist = getConsistencyLevel(stats.wakeTimeStandardDeviationMin)
+    const sleepHoursConsist = getConsistencyLevel(stats.sleepHoursStandardDeviationMin)
+    if (bedtimeConsist === 'poor' || bedtimeConsist === 'fair') {
+      suggestions.push(bedtimeConsist === 'poor'
+        ? '入睡时间波动较大（超过1小时），建议建立固定的睡前仪式，如洗澡、讲故事、调暗灯光，帮助宝宝形成条件反射'
+        : '入睡时间有一定波动，建议每天在固定时间开始准备入睡，提前30分钟营造安静氛围')
+    }
+    if (wakeTimeConsist === 'poor' || wakeTimeConsist === 'fair') {
+      suggestions.push(wakeTimeConsist === 'poor'
+        ? '起床时间很不规律，建议早晨用自然光或轻柔音乐唤醒，帮助建立生物钟'
+        : '起床时间有些波动，尽量在固定时间唤醒宝宝，即使前一晚睡得较晚')
+    }
+    if (sleepHoursConsist === 'poor' || stats.avgSleepHoursDeviationMin < -60) {
+      suggestions.push(babyAge <= 3
+        ? '小月龄宝宝睡眠时长波动大或不足，注意观察是否有环境噪音、温度不适或身体不适'
+        : '睡眠时长波动大或经常不足，白天可适当增加活动量，避免傍晚过度疲劳')
+    }
+    if (stats.avgBedtimeDeviationMin > 30) {
+      suggestions.push('实际入睡时间普遍晚于目标，尝试提前15-30分钟开始睡前流程')
+    } else if (stats.avgBedtimeDeviationMin < -30) {
+      suggestions.push('入睡时间普遍早于目标，如果宝宝精神好可适当推迟，确保夜间睡眠质量')
+    }
+    if (suggestions.length === 0) {
+      suggestions.push('睡眠作息保持得很好！继续保持规律的作息习惯，有助于宝宝健康成长')
+    }
+    return {
+      avgBedtime,
+      avgWakeTime,
+      avgSleepHours: avgSleep,
+      bedtimeConsistency: bedtimeConsist,
+      wakeTimeConsistency: wakeTimeConsist,
+      sleepHoursConsistency: sleepHoursConsist,
+      deviations,
+      bestDay,
+      worstDay,
+      suggestions,
+    }
+  })
+
   return {
     analysis,
     weekData,
@@ -366,5 +497,7 @@ export function useGrowthAnalysis() {
     warningCount,
     setCaregiverFilter,
     filterCaregiverId,
+    weeklySleepStats,
+    weeklySleepPatternReport,
   }
 }

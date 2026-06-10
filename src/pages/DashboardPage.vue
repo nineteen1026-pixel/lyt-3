@@ -1,18 +1,42 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill, Target, CheckCircle, XCircle } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
 import { useMedicine } from '@/composables/useMedicine'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
-const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin } = useBabyCare()
+const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin, currentSleepGoal, getSleepGoalWeeklyStats, getSleepGoalDailyAchievement } = useBabyCare()
 const { overdueReminders, pendingReminders, pendingMissed, refreshAll } = useReminder()
 const { alertCount: medicineAlertCount, medicines: currentMedicines, inventorySummary, lowStockMedicines } = useMedicine()
 
 const showBabyPicker = ref(false)
+
+const weeklySleepStats = computed(() => getSleepGoalWeeklyStats(7))
+const todaySleepAchievement = computed(() => getSleepGoalDailyAchievement(new Date()))
+
+function formatDeviation(min: number): string {
+  if (Math.abs(min) >= 900) return '-'
+  const sign = min > 0 ? '+' : ''
+  const h = Math.floor(Math.abs(min) / 60)
+  const m = Math.abs(min) % 60
+  if (h > 0) return `${sign}${h}h${m}m`
+  return `${sign}${m}m`
+}
+
+function getRateColor(rate: number) {
+  if (rate >= 80) return 'text-mint-500 dark:text-mint-400'
+  if (rate >= 50) return 'text-peach-500 dark:text-peach-400'
+  return 'text-amber-500'
+}
+
+function getRateBg(rate: number) {
+  if (rate >= 80) return 'bg-mint-100 dark:bg-mint-500/20'
+  if (rate >= 50) return 'bg-peach-100 dark:bg-peach-500/20'
+  return 'bg-amber-100 dark:bg-amber-500/20'
+}
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -155,6 +179,102 @@ function handleSwitchBaby(id: string) {
           <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">尿布更换</p>
         </div>
       </div>
+    </section>
+
+    <section v-if="currentSleepGoal" class="mb-6">
+      <button
+        @click="router.push('/weekly')"
+        class="w-full text-left"
+      >
+        <div class="bg-gradient-to-br from-peach-50 via-mint-50 to-cream-100 dark:from-peach-500/10 dark:via-mint-500/10 dark:to-cream-300/10 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                <Target :size="16" class="text-peach-400" />
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-warm-500 dark:text-cream-100">作息目标达成</h2>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200">近7天 · 点击查看周报分析</p>
+              </div>
+            </div>
+            <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+          </div>
+
+          <div v-if="weeklySleepStats" class="space-y-3">
+            <div class="bg-white/60 dark:bg-[#2a1f1a]/50 rounded-xl p-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-warm-400 dark:text-warm-100">综合达成率</span>
+                <span class="text-lg font-extrabold font-display" :class="getRateColor(weeklySleepStats.overallAchievementRate)">
+                  {{ weeklySleepStats.overallAchievementRate }}%
+                </span>
+              </div>
+              <div class="h-2 rounded-full bg-cream-100 dark:bg-warm-500/20 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-peach-400 to-mint-400"
+                  :style="{ width: weeklySleepStats.overallAchievementRate + '%' }"
+                ></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="rounded-xl p-2.5 text-center" :class="getRateBg(weeklySleepStats.bedtimeAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200 mb-1">入睡达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.bedtimeAchievementRate)">
+                  {{ weeklySleepStats.bedtimeAchievementRate }}%
+                </p>
+              </div>
+              <div class="rounded-xl p-2.5 text-center" :class="getRateBg(weeklySleepStats.wakeTimeAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200 mb-1">起床达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.wakeTimeAchievementRate)">
+                  {{ weeklySleepStats.wakeTimeAchievementRate }}%
+                </p>
+              </div>
+              <div class="rounded-xl p-2.5 text-center" :class="getRateBg(weeklySleepStats.sleepHoursAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200 mb-1">时长达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.sleepHoursAchievementRate)">
+                  {{ weeklySleepStats.sleepHoursAchievementRate }}%
+                </p>
+              </div>
+            </div>
+
+            <div v-if="todaySleepAchievement && todaySleepAchievement.bedtime" class="border-t border-cream-200/60 dark:border-warm-500/10 pt-3">
+              <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-2">今日情况</p>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="flex items-center gap-1 justify-center">
+                  <component
+                    :is="todaySleepAchievement.bedtimeAchieved ? CheckCircle : XCircle"
+                    :size="12"
+                    :class="todaySleepAchievement.bedtimeAchieved ? 'text-mint-500' : 'text-warm-300'"
+                  />
+                  <span class="text-[10px]" :class="todaySleepAchievement.bedtimeAchieved ? 'text-mint-600 dark:text-mint-400 font-semibold' : 'text-warm-300'">
+                    入睡 {{ todaySleepAchievement.bedtime }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 justify-center">
+                  <component
+                    :is="todaySleepAchievement.wakeTimeAchieved ? CheckCircle : XCircle"
+                    :size="12"
+                    :class="todaySleepAchievement.wakeTimeAchieved ? 'text-mint-500' : 'text-warm-300'"
+                  />
+                  <span class="text-[10px]" :class="todaySleepAchievement.wakeTimeAchieved ? 'text-mint-600 dark:text-mint-400 font-semibold' : 'text-warm-300'">
+                    起床 {{ todaySleepAchievement.wakeTime || '-' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 justify-center">
+                  <component
+                    :is="todaySleepAchievement.sleepHoursAchieved ? CheckCircle : XCircle"
+                    :size="12"
+                    :class="todaySleepAchievement.sleepHoursAchieved ? 'text-mint-500' : 'text-warm-300'"
+                  />
+                  <span class="text-[10px]" :class="todaySleepAchievement.sleepHoursAchieved ? 'text-mint-600 dark:text-mint-400 font-semibold' : 'text-warm-300'">
+                    {{ todaySleepAchievement.sleepHours }}h
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
     </section>
 
     <section class="mb-6">

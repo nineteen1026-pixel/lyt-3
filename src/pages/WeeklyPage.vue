@@ -4,14 +4,15 @@ import {
   BarChart3, TrendingUp, Lightbulb, Milk, Moon, Droplets,
   ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, AlertCircle,
   ShieldAlert, Info, CheckCircle2, User, ChevronDown, Check, Filter,
+  Target, Award, Clock, AlertOctagon, Sparkles,
 } from 'lucide-vue-next'
 import { useGrowthAnalysis } from '@/composables/useGrowthAnalysis'
 import { useFamily } from '@/composables/useFamily'
 import { useBabyCare } from '@/composables/useBabyCare'
 
-const { analysis, weekData, maxFeedCount, maxSleepMinutes, maxDiaperCount, anomalyCount, dangerCount, warningCount, setCaregiverFilter, filterCaregiverId } = useGrowthAnalysis()
+const { analysis, weekData, maxFeedCount, maxSleepMinutes, maxDiaperCount, anomalyCount, dangerCount, warningCount, setCaregiverFilter, filterCaregiverId, weeklySleepStats, weeklySleepPatternReport } = useGrowthAnalysis()
 const { family } = useFamily()
-const { getMemberName } = useBabyCare()
+const { getMemberName, currentSleepGoal } = useBabyCare()
 
 const showCaregiverPicker = ref(false)
 
@@ -142,6 +143,77 @@ const avgDiaperCount = computed(() => {
   const sum = weekData.value.reduce((a, d) => a + d.summary.diaperCount, 0)
   return (sum / weekData.value.length).toFixed(1)
 })
+
+function formatDeviation(min: number): string {
+  if (Math.abs(min) >= 900) return '-'
+  const sign = min > 0 ? '+' : ''
+  const h = Math.floor(Math.abs(min) / 60)
+  const m = Math.abs(min) % 60
+  if (h > 0) return `${sign}${h}h${m}m`
+  return `${sign}${m}m`
+}
+
+function getConsistencyLabel(level: string) {
+  const map: Record<string, string> = {
+    excellent: '非常规律',
+    good: '较为规律',
+    fair: '一般',
+    poor: '波动较大',
+  }
+  return map[level] || level
+}
+
+function getConsistencyColor(level: string) {
+  const map: Record<string, string> = {
+    excellent: 'text-mint-500 bg-mint-100 dark:bg-mint-500/20 dark:text-mint-400',
+    good: 'text-mint-600 bg-mint-50 dark:bg-mint-500/10 dark:text-mint-300',
+    fair: 'text-peach-500 bg-peach-100 dark:bg-peach-500/20 dark:text-peach-400',
+    poor: 'text-amber-600 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400',
+  }
+  return map[level] || ''
+}
+
+function getSeverityColor(severity: string) {
+  const map: Record<string, string> = {
+    normal: 'bg-mint-100 dark:bg-mint-500/20 border-mint-200 dark:border-mint-500/20',
+    mild: 'bg-peach-50 dark:bg-peach-500/10 border-peach-200 dark:border-peach-500/20',
+    moderate: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20',
+    severe: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20',
+  }
+  return map[severity] || ''
+}
+
+function getSeverityTextColor(severity: string) {
+  const map: Record<string, string> = {
+    normal: 'text-mint-600 dark:text-mint-400',
+    mild: 'text-peach-600 dark:text-peach-400',
+    moderate: 'text-amber-600 dark:text-amber-400',
+    severe: 'text-red-600 dark:text-red-400',
+  }
+  return map[severity] || ''
+}
+
+function getSeverityLabel(severity: string) {
+  const map: Record<string, string> = {
+    normal: '正常',
+    mild: '轻度偏差',
+    moderate: '中度偏差',
+    severe: '严重偏差',
+  }
+  return map[severity] || severity
+}
+
+function getRateColor(rate: number) {
+  if (rate >= 80) return 'text-mint-500 dark:text-mint-400'
+  if (rate >= 50) return 'text-peach-500 dark:text-peach-400'
+  return 'text-amber-500'
+}
+
+function getRateBg(rate: number) {
+  if (rate >= 80) return 'bg-mint-100 dark:bg-mint-500/20'
+  if (rate >= 50) return 'bg-peach-100 dark:bg-peach-500/20'
+  return 'bg-amber-100 dark:bg-amber-500/20'
+}
 </script>
 
 <template>
@@ -342,6 +414,173 @@ const avgDiaperCount = computed(() => {
               ></div>
               <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ day.date }}</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="currentSleepGoal" class="mb-6">
+        <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
+          <Target :size="14" class="text-peach-400" /> 睡眠作息目标分析
+        </h2>
+
+        <div v-if="weeklySleepStats" class="space-y-3">
+          <div class="bg-gradient-to-br from-peach-50 via-mint-50 to-cream-100 dark:from-peach-500/10 dark:via-mint-500/10 dark:to-cream-300/10 rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <Award :size="18" class="text-peach-400" />
+                <span class="text-sm font-bold text-warm-500 dark:text-cream-100">近7天达成情况</span>
+              </div>
+              <span class="text-2xl font-extrabold font-display" :class="getRateColor(weeklySleepStats.overallAchievementRate)">
+                {{ weeklySleepStats.overallAchievementRate }}%
+              </span>
+            </div>
+            <div class="h-2.5 rounded-full bg-white/60 dark:bg-[#2a1f1a]/50 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-peach-400 to-mint-400"
+                :style="{ width: weeklySleepStats.overallAchievementRate + '%' }"
+              ></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+              <div class="rounded-xl py-2" :class="getRateBg(weeklySleepStats.bedtimeAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200">入睡达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.bedtimeAchievementRate)">
+                  {{ weeklySleepStats.bedtimeAchievementRate }}%
+                </p>
+              </div>
+              <div class="rounded-xl py-2" :class="getRateBg(weeklySleepStats.wakeTimeAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200">起床达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.wakeTimeAchievementRate)">
+                  {{ weeklySleepStats.wakeTimeAchievementRate }}%
+                </p>
+              </div>
+              <div class="rounded-xl py-2" :class="getRateBg(weeklySleepStats.sleepHoursAchievementRate)">
+                <p class="text-[10px] text-warm-400 dark:text-warm-200">时长达标</p>
+                <p class="text-base font-extrabold font-display" :class="getRateColor(weeklySleepStats.sleepHoursAchievementRate)">
+                  {{ weeklySleepStats.sleepHoursAchievementRate }}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
+              <Clock :size="12" /> 平均偏差
+            </h3>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">入睡偏差</p>
+                <p class="text-sm font-bold" :class="Math.abs(weeklySleepStats.avgBedtimeDeviationMin) <= 30 ? 'text-mint-500' : 'text-peach-500'">
+                  {{ formatDeviation(weeklySleepStats.avgBedtimeDeviationMin) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">起床偏差</p>
+                <p class="text-sm font-bold" :class="Math.abs(weeklySleepStats.avgWakeTimeDeviationMin) <= 30 ? 'text-mint-500' : 'text-peach-500'">
+                  {{ formatDeviation(weeklySleepStats.avgWakeTimeDeviationMin) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">时长偏差</p>
+                <p class="text-sm font-bold" :class="Math.abs(weeklySleepStats.avgSleepHoursDeviationMin) <= 60 ? 'text-mint-500' : 'text-peach-500'">
+                  {{ formatDeviation(weeklySleepStats.avgSleepHoursDeviationMin) }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="weeklySleepPatternReport" class="mb-6">
+        <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
+          <AlertOctagon :size="14" class="text-amber-500" /> 睡眠规律偏差分析
+        </h2>
+
+        <div class="space-y-3">
+          <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
+            <div class="grid grid-cols-3 gap-3 text-center mb-3">
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均入睡</p>
+                <p class="text-sm font-extrabold text-peach-500 dark:text-peach-400 font-display">
+                  {{ weeklySleepPatternReport.avgBedtime || '-' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均起床</p>
+                <p class="text-sm font-extrabold text-mint-500 dark:text-mint-400 font-display">
+                  {{ weeklySleepPatternReport.avgWakeTime || '-' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均时长</p>
+                <p class="text-sm font-extrabold text-warm-500 dark:text-cream-300 font-display">
+                  {{ weeklySleepPatternReport.avgSleepHours }}h
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5 justify-center">
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="getConsistencyColor(weeklySleepPatternReport.bedtimeConsistency)">
+                入睡 {{ getConsistencyLabel(weeklySleepPatternReport.bedtimeConsistency) }}
+              </span>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="getConsistencyColor(weeklySleepPatternReport.wakeTimeConsistency)">
+                起床 {{ getConsistencyLabel(weeklySleepPatternReport.wakeTimeConsistency) }}
+              </span>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="getConsistencyColor(weeklySleepPatternReport.sleepHoursConsistency)">
+                时长 {{ getConsistencyLabel(weeklySleepPatternReport.sleepHoursConsistency) }}
+              </span>
+            </div>
+            <div v-if="weeklySleepPatternReport.bestDay || weeklySleepPatternReport.worstDay" class="mt-3 pt-3 border-t border-cream-100 dark:border-warm-500/10 flex justify-around text-xs">
+              <div v-if="weeklySleepPatternReport.bestDay" class="text-center">
+                <Sparkles :size="12" class="text-mint-500 mx-auto mb-0.5" />
+                <span class="text-warm-300 dark:text-warm-200">最佳</span>
+                <span class="font-bold text-mint-500 ml-1">{{ weeklySleepPatternReport.bestDay }}</span>
+              </div>
+              <div v-if="weeklySleepPatternReport.worstDay" class="text-center">
+                <AlertTriangle :size="12" class="text-peach-400 mx-auto mb-0.5" />
+                <span class="text-warm-300 dark:text-warm-200">待改善</span>
+                <span class="font-bold text-peach-500 ml-1">{{ weeklySleepPatternReport.worstDay }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3">每日偏差详情</h3>
+            <div class="space-y-2">
+              <div
+                v-for="dev in weeklySleepPatternReport.deviations"
+                :key="dev.date"
+                class="rounded-xl px-3 py-2.5 border"
+                :class="getSeverityColor(dev.severity)"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-bold" :class="getSeverityTextColor(dev.severity)">{{ dev.date }}</span>
+                  <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded" :class="getSeverityColor(dev.severity) + ' ' + getSeverityTextColor(dev.severity)">
+                    {{ getSeverityLabel(dev.severity) }}
+                  </span>
+                </div>
+                <p class="text-[11px] text-warm-400 dark:text-warm-200">{{ dev.description }}</p>
+                <div class="flex gap-3 mt-1 text-[10px] text-warm-300 dark:text-warm-400">
+                  <span>入睡 {{ formatDeviation(dev.bedtimeDeviationMin) }}</span>
+                  <span>起床 {{ formatDeviation(dev.wakeTimeDeviationMin) }}</span>
+                  <span>时长 {{ formatDeviation(dev.sleepHoursDeviationMin) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-cream-100 to-peach-50 dark:from-cream-300/10 dark:to-peach-500/10 rounded-2xl p-4 border border-cream-200 dark:border-peach-500/20">
+            <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-2 flex items-center gap-1.5">
+              <Lightbulb :size="12" class="text-peach-400" /> 睡眠规律改善建议
+            </h3>
+            <ul class="space-y-1.5">
+              <li
+                v-for="(sugg, i) in weeklySleepPatternReport.suggestions"
+                :key="i"
+                class="text-[11px] text-warm-400 dark:text-warm-200 flex items-start gap-1.5"
+              >
+                <span class="text-peach-400 mt-0.5">•</span>
+                <span>{{ sugg }}</span>
+              </li>
+            </ul>
           </div>
         </div>
       </section>

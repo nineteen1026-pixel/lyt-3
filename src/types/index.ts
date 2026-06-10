@@ -476,3 +476,65 @@ export const KNOWLEDGE_CATEGORY_ICONS: Record<KnowledgeCategory, string> = {
   care: 'Heart',
   milestone: 'Star',
 }
+
+export interface SleepGoal {
+  id: string
+  babyId: string
+  targetBedtime: string
+  targetWakeTime: string
+  targetSleepHours: number
+  bedtimeToleranceMin: number
+  wakeTimeToleranceMin: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SleepGoalDailyAchievement {
+  date: string
+  bedtime: string | null
+  wakeTime: string | null
+  sleepHours: number
+  bedtimeAchieved: boolean
+  wakeTimeAchieved: boolean
+  sleepHoursAchieved: boolean
+  bedtimeDeviationMin: number
+  wakeTimeDeviationMin: number
+  sleepHoursDeviationMin: number
+}
+
+export interface SleepGoalWeeklyStats {
+  bedtimeAchievementRate: number
+  wakeTimeAchievementRate: number
+  sleepHoursAchievementRate: number
+  overallAchievementRate: number
+  avgBedtimeDeviationMin: number
+  avgWakeTimeDeviationMin: number
+  avgSleepHoursDeviationMin: number
+  bedtimeStandardDeviationMin: number
+  wakeTimeStandardDeviationMin: number
+  sleepHoursStandardDeviationMin: number
+  dailyAchievements: SleepGoalDailyAchievement[]
+}
+
+export interface SleepPatternDeviation {
+  date: string
+  bedtimeDeviationMin: number
+  wakeTimeDeviationMin: number
+  sleepHoursDeviationMin: number
+  overallDeviationScore: number
+  severity: 'normal' | 'mild' | 'moderate' | 'severe'
+  description: string
+}
+
+export interface WeeklySleepPatternReport {
+  avgBedtime: string | null
+  avgWakeTime: string | null
+  avgSleepHours: number
+  bedtimeConsistency: 'excellent' | 'good' | 'fair' | 'poor'
+  wakeTimeConsistency: 'excellent' | 'good' | 'fair' | 'poor'
+  sleepHoursConsistency: 'excellent' | 'good' | 'fair' | 'poor'
+  deviations: SleepPatternDeviation[]
+  bestDay: string | null
+  worstDay: string | null
+  suggestions: string[]
+}

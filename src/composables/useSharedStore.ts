@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -20,6 +20,7 @@ const LS_KEYS = {
   stockChanges: 'baby-care:stock-changes',
   currentBabyId: 'baby-care:current-baby-id',
   initialized: 'baby-care:initialized',
+  sleepGoals: 'baby-care:sleep-goals',
 }
 
 const SS_KEYS = {
@@ -83,6 +84,7 @@ export const medicines = ref<Medicine[]>(loadLS<Medicine[]>(LS_KEYS.medicines, [
 export const medicineUsages = ref<MedicineUsage[]>(loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, []))
 export const stockChanges = ref<StockChangeRecord[]>(loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, []))
 export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, ''))
+export const sleepGoals = ref<SleepGoal[]>(loadLS<SleepGoal[]>(LS_KEYS.sleepGoals, []))
 
 if (!initialized) {
   localStorage.setItem(LS_KEYS.initialized, 'true')
@@ -107,6 +109,7 @@ try {
     medicineUsages.value = loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, [])
     stockChanges.value = loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, [])
     currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
+    sleepGoals.value = loadLS<SleepGoal[]>(LS_KEYS.sleepGoals, [])
   }
 } catch {
   syncChannel = null
@@ -128,6 +131,7 @@ export function persistData() {
   saveLS(LS_KEYS.medicineUsages, medicineUsages.value)
   saveLS(LS_KEYS.stockChanges, stockChanges.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
+  saveLS(LS_KEYS.sleepGoals, sleepGoals.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
 
