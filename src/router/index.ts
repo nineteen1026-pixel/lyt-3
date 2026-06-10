@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import FeedingPage from '@/pages/FeedingPage.vue'
 import SleepPage from '@/pages/SleepPage.vue'
+import SchedulePage from '@/pages/SchedulePage.vue'
 import DiaperPage from '@/pages/DiaperPage.vue'
 import HistoryPage from '@/pages/HistoryPage.vue'
 import WeeklyPage from '@/pages/WeeklyPage.vue'
@@ -21,6 +22,7 @@ const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
   { path: '/feeding', name: 'feeding', component: FeedingPage },
   { path: '/sleep', name: 'sleep', component: SleepPage },
+  { path: '/schedule', name: 'schedule', component: SchedulePage },
   { path: '/diaper', name: 'diaper', component: DiaperPage },
   { path: '/history', name: 'history', component: HistoryPage },
   { path: '/weekly', name: 'weekly', component: WeeklyPage },

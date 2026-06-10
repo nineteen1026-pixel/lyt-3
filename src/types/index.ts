@@ -599,3 +599,146 @@ export interface WeeklySleepPatternReport {
   worstDay: string | null
   suggestions: string[]
 }
+
+export type ScheduleActivityType = 'wake' | 'feeding' | 'nap' | 'sleep' | 'bath' | 'play' | 'outdoor' | 'medicine' | 'other'
+
+export const SCHEDULE_ACTIVITY_LABELS: Record<ScheduleActivityType, string> = {
+  wake: '起床',
+  feeding: '喂奶',
+  nap: '小睡',
+  sleep: '夜间睡眠',
+  bath: '洗澡',
+  play: '游戏互动',
+  outdoor: '户外活动',
+  medicine: '吃药',
+  other: '其他',
+}
+
+export const SCHEDULE_ACTIVITY_ICONS: Record<ScheduleActivityType, string> = {
+  wake: 'Sun',
+  feeding: 'Milk',
+  nap: 'Moon',
+  sleep: 'Moon',
+  bath: 'Droplets',
+  play: 'Smile',
+  outdoor: 'TreePine',
+  medicine: 'Pill',
+  other: 'Star',
+}
+
+export const SCHEDULE_ACTIVITY_COLORS: Record<ScheduleActivityType, { bg: string; text: string; border: string }> = {
+  wake: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-500/20' },
+  feeding: { bg: 'bg-peach-50 dark:bg-peach-500/10', text: 'text-peach-600 dark:text-peach-400', border: 'border-peach-200 dark:border-peach-500/20' },
+  nap: { bg: 'bg-mint-50 dark:bg-mint-500/10', text: 'text-mint-600 dark:text-mint-400', border: 'border-mint-200 dark:border-mint-500/20' },
+  sleep: { bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-500/20' },
+  bath: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-500/20' },
+  play: { bg: 'bg-pink-50 dark:bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-500/20' },
+  outdoor: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-500/20' },
+  medicine: { bg: 'bg-rose-50 dark:bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-500/20' },
+  other: { bg: 'bg-cream-100 dark:bg-warm-500/10', text: 'text-warm-500 dark:text-warm-300', border: 'border-cream-200 dark:border-warm-500/20' },
+}
+
+export interface ScheduleActivity {
+  id: string
+  type: ScheduleActivityType
+  title: string
+  startTime: string
+  endTime: string
+  reminder?: boolean
+  note?: string
+}
+
+export interface SchedulePlan {
+  id: string
+  babyId: string
+  name: string
+  description?: string
+  activities: ScheduleActivity[]
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type ScheduleTemplateAgeRange = '0-1m' | '1-3m' | '3-6m' | '6-9m' | '9-12m' | '12-18m' | '18-24m'
+
+export const SCHEDULE_TEMPLATE_AGE_RANGES: { value: ScheduleTemplateAgeRange; label: string }[] = [
+  { value: '0-1m', label: '0-1个月 新生儿' },
+  { value: '1-3m', label: '1-3个月 小婴儿' },
+  { value: '3-6m', label: '3-6个月 婴儿' },
+  { value: '6-9m', label: '6-9个月 大婴儿' },
+  { value: '9-12m', label: '9-12个月 学步前期' },
+  { value: '12-18m', label: '12-18个月 学步期' },
+  { value: '18-24m', label: '18-24个月 幼儿期' },
+]
+
+export interface ScheduleTemplate {
+  id: string
+  name: string
+  ageRange: ScheduleTemplateAgeRange
+  description: string
+  activities: Omit<ScheduleActivity, 'id'>[]
+  source: 'official' | 'community'
+  popularity: number
+}
+
+export type ScheduleExecutionStatus = 'pending' | 'ongoing' | 'completed' | 'skipped' | 'delayed'
+
+export const SCHEDULE_EXECUTION_LABELS: Record<ScheduleExecutionStatus, string> = {
+  pending: '待执行',
+  ongoing: '进行中',
+  completed: '已完成',
+  skipped: '已跳过',
+  delayed: '已延迟',
+}
+
+export const SCHEDULE_EXECUTION_COLORS: Record<ScheduleExecutionStatus, string> = {
+  pending: 'bg-warm-100 dark:bg-warm-500/10 text-warm-500 dark:text-warm-200',
+  ongoing: 'bg-mint-100 dark:bg-mint-500/20 text-mint-600 dark:text-mint-400',
+  completed: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+  skipped: 'bg-cream-200 dark:bg-cream-300/20 text-warm-400 dark:text-warm-300',
+  delayed: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
+}
+
+export interface ScheduleExecution {
+  id: string
+  planId: string
+  activityId: string
+  babyId: string
+  date: string
+  scheduledStartTime: string
+  scheduledEndTime: string
+  actualStartTime?: string
+  actualEndTime?: string
+  status: ScheduleExecutionStatus
+  deviationMinutes?: number
+  note?: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScheduleDailyDeviation {
+  date: string
+  totalActivities: number
+  completedCount: number
+  skippedCount: number
+  delayedCount: number
+  completionRate: number
+  avgDeviationMinutes: number
+  maxDeviationMinutes: number
+  onTimeRate: number
+}
+
+export interface ScheduleDeviationAnalysis {
+  periodDays: number
+  dailyDeviations: ScheduleDailyDeviation[]
+  overallCompletionRate: number
+  overallOnTimeRate: number
+  avgDeviationMinutes: number
+  mostDelayedActivities: { activityType: ScheduleActivityType; count: number; avgDelay: number }[]
+  mostSkippedActivities: { activityType: ScheduleActivityType; count: number }[]
+  bestPerformingDay: string | null
+  worstPerformingDay: string | null
+  suggestions: string[]
+  trend: 'improving' | 'worsening' | 'stable'
+}

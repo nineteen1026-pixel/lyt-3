@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -24,6 +24,8 @@ const LS_KEYS = {
   photoDiaryEntries: 'baby-care:photo-diary-entries',
   milestones: 'baby-care:milestones',
   familyComments: 'baby-care:family-comments',
+  schedulePlans: 'baby-care:schedule-plans',
+  scheduleExecutions: 'baby-care:schedule-executions',
 }
 
 const SS_KEYS = {
@@ -91,6 +93,8 @@ export const sleepGoals = ref<SleepGoal[]>(loadLS<SleepGoal[]>(LS_KEYS.sleepGoal
 export const photoDiaryEntries = ref<PhotoDiaryEntry[]>(loadLS<PhotoDiaryEntry[]>(LS_KEYS.photoDiaryEntries, []))
 export const milestones = ref<Milestone[]>(loadLS<Milestone[]>(LS_KEYS.milestones, []))
 export const familyComments = ref<FamilyComment[]>(loadLS<FamilyComment[]>(LS_KEYS.familyComments, []))
+export const schedulePlans = ref<SchedulePlan[]>(loadLS<SchedulePlan[]>(LS_KEYS.schedulePlans, []))
+export const scheduleExecutions = ref<ScheduleExecution[]>(loadLS<ScheduleExecution[]>(LS_KEYS.scheduleExecutions, []))
 
 if (!initialized) {
   localStorage.setItem(LS_KEYS.initialized, 'true')
@@ -119,6 +123,8 @@ try {
     photoDiaryEntries.value = loadLS<PhotoDiaryEntry[]>(LS_KEYS.photoDiaryEntries, [])
     milestones.value = loadLS<Milestone[]>(LS_KEYS.milestones, [])
     familyComments.value = loadLS<FamilyComment[]>(LS_KEYS.familyComments, [])
+    schedulePlans.value = loadLS<SchedulePlan[]>(LS_KEYS.schedulePlans, [])
+    scheduleExecutions.value = loadLS<ScheduleExecution[]>(LS_KEYS.scheduleExecutions, [])
   }
 } catch {
   syncChannel = null
@@ -144,6 +150,8 @@ export function persistData() {
   saveLS(LS_KEYS.photoDiaryEntries, photoDiaryEntries.value)
   saveLS(LS_KEYS.milestones, milestones.value)
   saveLS(LS_KEYS.familyComments, familyComments.value)
+  saveLS(LS_KEYS.schedulePlans, schedulePlans.value)
+  saveLS(LS_KEYS.scheduleExecutions, scheduleExecutions.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
 
