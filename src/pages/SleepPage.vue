@@ -1,15 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Moon, Check, Eye } from 'lucide-vue-next'
+import { ArrowLeft, Moon, Check, Eye, User, ChevronDown } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
+import { useFamily } from '@/composables/useFamily'
 
 const router = useRouter()
-const { addSleep, canAddRecord, needsJoin } = useBabyCare()
+const { addSleep, canAddRecord, needsJoin, getMemberName, settings } = useBabyCare()
+const { family, currentUserId } = useFamily()
 
 const quality = ref<'deep' | 'light' | 'fussy'>('deep')
 const note = ref('')
 const saved = ref(false)
+const caregiverId = ref(settings.value.defaultCaregiverId || currentUserId.value)
+const showCaregiverPicker = ref(false)
+
+const familyMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members
+})
+
+const caregiverName = computed(() => getMemberName(caregiverId.value))
 
 function nowTimeStr() {
   return new Date().toISOString().slice(0, 16)
@@ -41,11 +52,17 @@ function handleSubmit() {
     endTime: new Date(endTime.value).toISOString(),
     quality: quality.value,
     note: note.value,
+    caregiverId: caregiverId.value,
   })
   saved.value = true
   setTimeout(() => {
     router.push('/')
   }, 800)
+}
+
+function selectCaregiver(id: string) {
+  caregiverId.value = id
+  showCaregiverPicker.value = false
 }
 
 const qualityOptions = [
@@ -131,6 +148,42 @@ const qualityOptions = [
           >
             <span class="text-2xl block mb-1">{{ opt.emoji }}</span>
             {{ opt.label }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="familyMembers.length > 0" class="relative">
+        <label class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-2 block">照护人</label>
+        <button
+          type="button"
+          @click="showCaregiverPicker = !showCaregiverPicker"
+          class="w-full bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl px-4 py-3 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-mint-300"
+        >
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center">
+              <User :size="14" class="text-mint-500" />
+            </div>
+            <span class="text-sm text-warm-500 dark:text-cream-100">{{ caregiverName }}</span>
+          </div>
+          <ChevronDown :size="16" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+        </button>
+        <div
+          v-if="showCaregiverPicker"
+          class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-48 overflow-y-auto"
+        >
+          <button
+            v-for="member in familyMembers"
+            :key="member.id"
+            type="button"
+            @click="selectCaregiver(member.id)"
+            class="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+            :class="caregiverId === member.id ? 'bg-mint-50 dark:bg-mint-500/10 text-mint-500' : 'text-warm-500 dark:text-cream-100'"
+          >
+            <div class="w-7 h-7 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+              <User :size="14" class="text-warm-400" />
+            </div>
+            <span>{{ member.name }}</span>
+            <Check v-if="caregiverId === member.id" :size="14" class="ml-auto text-mint-500" />
           </button>
         </div>
       </div>

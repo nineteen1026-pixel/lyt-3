@@ -7,6 +7,8 @@ import {
   Activity, Heart, Clock,
 } from 'lucide-vue-next'
 import { useHealthRecord } from '@/composables/useHealthRecord'
+import { useBabyCare } from '@/composables/useBabyCare'
+import { useFamily } from '@/composables/useFamily'
 import type { VaccineRecord } from '@/types'
 
 const router = useRouter()
@@ -17,6 +19,23 @@ const {
   canAddRecord, addGrowth, addVaccine, addCheckup,
   markVaccineDone, getMemberName,
 } = useHealthRecord()
+const { settings } = useBabyCare()
+const { family, currentUserId } = useFamily()
+
+const caregiverId = ref(settings.value.defaultCaregiverId || currentUserId.value)
+const showCaregiverPicker = ref(false)
+
+const familyMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members
+})
+
+const caregiverName = computed(() => getMemberName(caregiverId.value))
+
+function selectCaregiver(id: string) {
+  caregiverId.value = id
+  showCaregiverPicker.value = false
+}
 
 type TabKey = 'growth' | 'vaccine' | 'checkup' | 'trend'
 const activeTab = ref<TabKey>('growth')
@@ -63,6 +82,7 @@ function handleAddGrowth() {
     weight: newGrowth.value.weight,
     headCircumference: newGrowth.value.headCircumference || undefined,
     note: newGrowth.value.note,
+    caregiverId: caregiverId.value,
   })
   showAddGrowth.value = false
   newGrowth.value = { height: 67, weight: 7.5, headCircumference: 42, note: '' }
@@ -75,6 +95,7 @@ function handleAddVaccine() {
     status: 'planned',
     location: newVaccine.value.location || undefined,
     note: newVaccine.value.note,
+    caregiverId: caregiverId.value,
   })
   showAddVaccine.value = false
   newVaccine.value = { name: '', plannedDate: new Date().toISOString().slice(0, 10), location: '社区卫生中心', note: '' }
@@ -88,6 +109,7 @@ function handleAddCheckup() {
     items: newCheckup.value.items.split('，').map(s => s.trim()).filter(Boolean),
     result: newCheckup.value.result,
     note: newCheckup.value.note,
+    caregiverId: caregiverId.value,
   })
   showAddCheckup.value = false
   newCheckup.value = { hospital: '', doctor: '', items: '', result: '', note: '' }
@@ -236,6 +258,41 @@ const trendData = computed(() => {
               class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
           </div>
         </div>
+        <div v-if="familyMembers.length > 0" class="mb-3 relative">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
+          <button
+            type="button"
+            @click="showCaregiverPicker = !showCaregiverPicker"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-peach-300"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                <User :size="12" class="text-peach-400" />
+              </div>
+              <span class="text-sm text-warm-500 dark:text-cream-100">{{ caregiverName }}</span>
+            </div>
+            <ChevronDown :size="14" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+          </button>
+          <div
+            v-if="showCaregiverPicker"
+            class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-40 overflow-y-auto"
+          >
+            <button
+              v-for="member in familyMembers"
+              :key="member.id"
+              type="button"
+              @click="selectCaregiver(member.id)"
+              class="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="caregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                <User :size="12" class="text-warm-400" />
+              </div>
+              <span>{{ member.name }}</span>
+              <Check v-if="caregiverId === member.id" :size="12" class="ml-auto text-peach-400" />
+            </button>
+          </div>
+        </div>
         <div class="mb-3">
           <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
           <input v-model="newGrowth.note" type="text" placeholder="可选备注..."
@@ -300,6 +357,41 @@ const trendData = computed(() => {
             <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">接种地点</label>
             <input v-model="newVaccine.location" type="text" placeholder="社区卫生中心"
               class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          </div>
+        </div>
+        <div v-if="familyMembers.length > 0" class="mb-3 relative">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
+          <button
+            type="button"
+            @click="showCaregiverPicker = !showCaregiverPicker"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-peach-300"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                <User :size="12" class="text-peach-400" />
+              </div>
+              <span class="text-sm text-warm-500 dark:text-cream-100">{{ caregiverName }}</span>
+            </div>
+            <ChevronDown :size="14" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+          </button>
+          <div
+            v-if="showCaregiverPicker"
+            class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-40 overflow-y-auto"
+          >
+            <button
+              v-for="member in familyMembers"
+              :key="member.id"
+              type="button"
+              @click="selectCaregiver(member.id)"
+              class="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="caregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                <User :size="12" class="text-warm-400" />
+              </div>
+              <span>{{ member.name }}</span>
+              <Check v-if="caregiverId === member.id" :size="12" class="ml-auto text-peach-400" />
+            </button>
           </div>
         </div>
         <div class="mb-3">
@@ -430,11 +522,46 @@ const trendData = computed(() => {
             <input v-model="newCheckupDate" type="date"
               class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
           </div>
-          <div>
-            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
-            <input v-model="newCheckup.note" type="text" placeholder="可选备注..."
-              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          <div v-if="familyMembers.length > 0" class="relative">
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
+            <button
+              type="button"
+              @click="showCaregiverPicker = !showCaregiverPicker"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-peach-300"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-5 h-5 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                  <User :size="10" class="text-peach-400" />
+                </div>
+                <span class="text-xs text-warm-500 dark:text-cream-100 truncate">{{ caregiverName }}</span>
+              </div>
+              <ChevronDown :size="12" class="text-warm-300 dark:text-warm-200 transition-transform shrink-0" :class="{ 'rotate-180': showCaregiverPicker }" />
+            </button>
+            <div
+              v-if="showCaregiverPicker"
+              class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-40 overflow-y-auto"
+            >
+              <button
+                v-for="member in familyMembers"
+                :key="member.id"
+                type="button"
+                @click="selectCaregiver(member.id)"
+                class="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+                :class="caregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+              >
+                <div class="w-5 h-5 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                  <User :size="10" class="text-warm-400" />
+                </div>
+                <span class="truncate">{{ member.name }}</span>
+                <Check v-if="caregiverId === member.id" :size="12" class="ml-auto text-peach-400 shrink-0" />
+              </button>
+            </div>
           </div>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
+          <input v-model="newCheckup.note" type="text" placeholder="可选备注..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
         </div>
         <div class="flex gap-2">
           <button @click="showAddCheckup = false" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10">取消</button>

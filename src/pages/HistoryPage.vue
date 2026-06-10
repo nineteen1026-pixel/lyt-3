@@ -1,19 +1,44 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Milk, Moon, Droplets, Trash2, Filter, Eye } from 'lucide-vue-next'
+import { Milk, Moon, Droplets, Trash2, Filter, Eye, User, ChevronDown, Check } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
+import { useFamily } from '@/composables/useFamily'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const { allActivities, deleteRecord, canDelete, getMemberName, canViewRecord, needsJoin } = useBabyCare()
+const { family } = useFamily()
 
 const filterType = ref<'all' | 'feeding' | 'sleep' | 'diaper'>('all')
+const filterMemberId = ref<string>('all')
+const showMemberPicker = ref(false)
+
+const familyMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members
+})
 
 const filteredActivities = computed(() => {
-  if (filterType.value === 'all') return allActivities.value
-  return allActivities.value.filter(r => r.type === filterType.value)
+  let result = allActivities.value
+  if (filterType.value !== 'all') {
+    result = result.filter(r => r.type === filterType.value)
+  }
+  if (filterMemberId.value !== 'all') {
+    result = result.filter(r => (r as any).caregiverId === filterMemberId.value)
+  }
+  return result
 })
+
+const filterMemberName = computed(() => {
+  if (filterMemberId.value === 'all') return '全部照护人'
+  return getMemberName(filterMemberId.value)
+})
+
+function selectMember(id: string) {
+  filterMemberId.value = id
+  showMemberPicker.value = false
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -110,7 +135,7 @@ function handleDelete(id: string) {
     <template v-else>
     <p class="text-xs text-warm-300 dark:text-warm-200 mb-4">共 {{ filteredActivities.length }} 条记录</p>
 
-    <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+    <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
       <button
         v-for="tab in filterTabs"
         :key="tab.value"
@@ -122,6 +147,50 @@ function handleDelete(id: string) {
       >
         {{ tab.label }}
       </button>
+    </div>
+
+    <div v-if="familyMembers.length > 0" class="mb-4 relative">
+      <button
+        @click="showMemberPicker = !showMemberPicker"
+        class="w-full bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl px-4 py-2.5 text-left flex items-center justify-between shadow-sm"
+      >
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+            <User :size="12" class="text-peach-400" />
+          </div>
+          <span class="text-sm font-semibold text-warm-500 dark:text-cream-100">{{ filterMemberName }}</span>
+        </div>
+        <ChevronDown :size="16" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showMemberPicker }" />
+      </button>
+      <div
+        v-if="showMemberPicker"
+        class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-48 overflow-y-auto"
+      >
+        <button
+          @click="selectMember('all')"
+          class="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+          :class="filterMemberId === 'all' ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+        >
+          <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+            <Filter :size="12" class="text-warm-400" />
+          </div>
+          <span>全部照护人</span>
+          <Check v-if="filterMemberId === 'all'" :size="14" class="ml-auto text-peach-400" />
+        </button>
+        <button
+          v-for="member in familyMembers"
+          :key="member.id"
+          @click="selectMember(member.id)"
+          class="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+          :class="filterMemberId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+        >
+          <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+            <User :size="12" class="text-warm-400" />
+          </div>
+          <span>{{ member.name }}</span>
+          <Check v-if="filterMemberId === member.id" :size="14" class="ml-auto text-peach-400" />
+        </button>
+      </div>
     </div>
 
     <div class="space-y-2">

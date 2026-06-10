@@ -38,7 +38,7 @@ export function useHealthRecord() {
     currentVaccines.value.filter(v => v.status === 'done')
   )
 
-  function addGrowth(record: Omit<GrowthRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addGrowth(record: Omit<GrowthRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     growths.value.push({
@@ -47,6 +47,7 @@ export function useHealthRecord() {
       type: 'growth',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true
@@ -68,7 +69,7 @@ export function useHealthRecord() {
     return true
   }
 
-  function addVaccine(record: Omit<VaccineRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addVaccine(record: Omit<VaccineRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     vaccines.value.push({
@@ -77,6 +78,7 @@ export function useHealthRecord() {
       type: 'vaccine',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true
@@ -102,7 +104,7 @@ export function useHealthRecord() {
     return true
   }
 
-  function addCheckup(record: Omit<CheckupRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addCheckup(record: Omit<CheckupRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     checkups.value.unshift({
@@ -111,6 +113,7 @@ export function useHealthRecord() {
       type: 'checkup',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true

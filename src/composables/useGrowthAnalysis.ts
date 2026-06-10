@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { DailyComparison, ConsecutiveTrend, AnomalyDay, GrowthAdvice, GrowthAnalysis, DaySummary } from '@/types'
 import { useBabyCare } from './useBabyCare'
 import { babies, currentBabyId } from './useSharedStore'
@@ -9,6 +9,12 @@ function getBabyAgeMonths(): number {
   const birth = new Date(baby.birthDate)
   const now = new Date()
   return (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth()
+}
+
+const filterCaregiverId = ref<string | undefined>(undefined)
+
+function setCaregiverFilter(id: string | undefined) {
+  filterCaregiverId.value = id
 }
 
 function buildComparisons(weekData: { date: string; summary: DaySummary }[]): DailyComparison[] {
@@ -323,7 +329,7 @@ function buildAdvices(
 export function useGrowthAnalysis() {
   const { getWeekData } = useBabyCare()
 
-  const weekData = computed(() => getWeekData(7))
+  const weekData = computed(() => getWeekData(7, filterCaregiverId.value))
 
   const analysis = computed<GrowthAnalysis>(() => {
     const data = weekData.value
@@ -358,5 +364,7 @@ export function useGrowthAnalysis() {
     anomalyCount,
     dangerCount,
     warningCount,
+    setCaregiverFilter,
+    filterCaregiverId,
   }
 }

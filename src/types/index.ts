@@ -16,6 +16,7 @@ export interface FeedingRecord {
   amount: number
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export interface SleepRecord {
@@ -27,6 +28,7 @@ export interface SleepRecord {
   quality: 'deep' | 'light' | 'fussy'
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export interface DiaperRecord {
@@ -37,6 +39,7 @@ export interface DiaperRecord {
   diaperType: 'wet' | 'dirty' | 'mixed'
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export interface GrowthRecord {
@@ -49,6 +52,7 @@ export interface GrowthRecord {
   headCircumference?: number
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export interface VaccineRecord {
@@ -62,6 +66,7 @@ export interface VaccineRecord {
   location?: string
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export interface CheckupRecord {
@@ -76,6 +81,7 @@ export interface CheckupRecord {
   attachments?: string[]
   note: string
   createdBy: string
+  caregiverId: string
 }
 
 export type HealthRecord = GrowthRecord | VaccineRecord | CheckupRecord
@@ -118,6 +124,7 @@ export interface PatternSummary {
 export interface AppSettings {
   darkMode: boolean
   notifications: boolean
+  defaultCaregiverId?: string
 }
 
 export interface DaySummary {

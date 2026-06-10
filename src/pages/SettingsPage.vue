@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2, Lock } from 'lucide-vue-next'
+import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2, Lock, User, ChevronDown } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 import { useTheme } from '@/composables/useTheme'
@@ -55,6 +55,24 @@ function handleExport() {
   a.download = `baby-care-export-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+const showCaregiverPicker = ref(false)
+
+const familyMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members
+})
+
+const defaultCaregiverName = computed(() => {
+  if (!settings.value.defaultCaregiverId) return '当前用户'
+  const member = family.value?.members.find(m => m.id === settings.value.defaultCaregiverId)
+  return member?.name || '当前用户'
+})
+
+function handleSetDefaultCaregiver(id: string | undefined) {
+  updateSettings({ defaultCaregiverId: id })
+  showCaregiverPicker.value = false
 }
 
 const confirmDeleteBabyId = ref<string | null>(null)
@@ -236,6 +254,57 @@ function handleDeleteBaby(babyId: string) {
               :class="settings.notifications ? 'left-[22px]' : 'left-0.5'"
             ></div>
           </button>
+        </div>
+        <div v-if="family && !familyNeedsJoin" class="relative">
+          <button
+            @click="showCaregiverPicker = !showCaregiverPicker"
+            class="w-full flex items-center justify-between px-4 py-3.5 text-left"
+          >
+            <div class="flex items-center gap-3">
+              <div>
+                <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">默认照护人</p>
+                <p class="text-[11px] text-warm-300 dark:text-warm-200">记录时默认选中的照护人</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
+                <div class="w-6 h-6 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                  <User :size="12" class="text-peach-400" />
+                </div>
+                <span class="text-sm font-medium text-peach-400">{{ defaultCaregiverName }}</span>
+              </div>
+              <ChevronDown :size="16" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+            </div>
+          </button>
+          <div
+            v-if="showCaregiverPicker"
+            class="absolute top-full right-4 left-4 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-48 overflow-y-auto"
+          >
+            <button
+              @click="handleSetDefaultCaregiver(undefined)"
+              class="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="!settings.defaultCaregiverId ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                <User :size="12" class="text-warm-400" />
+              </div>
+              <span>当前用户</span>
+              <Check v-if="!settings.defaultCaregiverId" :size="14" class="ml-auto text-peach-400" />
+            </button>
+            <button
+              v-for="member in familyMembers"
+              :key="member.id"
+              @click="handleSetDefaultCaregiver(member.id)"
+              class="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="settings.defaultCaregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+              <User :size="12" class="text-warm-400" />
+              </div>
+              <span>{{ member.name }}</span>
+              <Check v-if="settings.defaultCaregiverId === member.id" :size="14" class="ml-auto text-peach-400" />
+            </button>
+          </div>
         </div>
       </div>
     </section>

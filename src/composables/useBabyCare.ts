@@ -61,7 +61,7 @@ export function useBabyCare() {
     persistData()
   }
 
-  function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     feedings.value.unshift({
@@ -70,12 +70,13 @@ export function useBabyCare() {
       type: 'feeding',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true
   }
 
-  function addSleep(record: Omit<SleepRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addSleep(record: Omit<SleepRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     sleeps.value.unshift({
@@ -84,12 +85,13 @@ export function useBabyCare() {
       type: 'sleep',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true
   }
 
-  function addDiaper(record: Omit<DiaperRecord, 'id' | 'type' | 'babyId' | 'createdBy'>) {
+  function addDiaper(record: Omit<DiaperRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     diapers.value.unshift({
@@ -98,6 +100,7 @@ export function useBabyCare() {
       type: 'diaper',
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
     })
     persistData()
     return true
@@ -152,22 +155,29 @@ export function useBabyCare() {
     return all
   })
 
-  function getDaySummary(date: Date): DaySummary {
+  function getDaySummary(date: Date, caregiverId?: string): DaySummary {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
     const dayEnd = dayStart + 86400000
 
-    const dayFeedings = currentFeedings.value.filter(r => {
+    let dayFeedings = currentFeedings.value.filter(r => {
       const t = new Date(r.timestamp).getTime()
       return t >= dayStart && t < dayEnd
     })
-    const daySleeps = currentSleeps.value.filter(r => {
+    let daySleeps = currentSleeps.value.filter(r => {
       const t = new Date(r.startTime).getTime()
       return t >= dayStart && t < dayEnd
     })
-    const dayDiapers = currentDiapers.value.filter(r => {
+    let dayDiapers = currentDiapers.value.filter(r => {
       const t = new Date(r.timestamp).getTime()
       return t >= dayStart && t < dayEnd
     })
+
+    if (caregiverId) {
+      dayFeedings = dayFeedings.filter(r => r.caregiverId === caregiverId)
+      daySleeps = daySleeps.filter(r => r.caregiverId === caregiverId)
+      dayDiapers = dayDiapers.filter(r => r.caregiverId === caregiverId)
+    }
+
     const sleepMinutes = daySleeps.reduce((acc, s) => {
       const diff = new Date(s.endTime).getTime() - new Date(s.startTime).getTime()
       return acc + diff / 60000
@@ -181,12 +191,12 @@ export function useBabyCare() {
     }
   }
 
-  function getWeekData(days: number = 7): { date: string; summary: DaySummary }[] {
+  function getWeekData(days: number = 7, caregiverId?: string): { date: string; summary: DaySummary }[] {
     const result: { date: string; summary: DaySummary }[] = []
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000)
       const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
-      result.push({ date: dateStr, summary: getDaySummary(d) })
+      result.push({ date: dateStr, summary: getDaySummary(d, caregiverId) })
     }
     return result
   }
