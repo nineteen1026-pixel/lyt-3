@@ -12,6 +12,7 @@ import ReminderCenterPage from '@/pages/ReminderCenterPage.vue'
 import MonthlyReportPage from '@/pages/MonthlyReportPage.vue'
 import KnowledgePage from '@/pages/KnowledgePage.vue'
 import MedicinePage from '@/pages/MedicinePage.vue'
+import DataRecoveryPage from '@/pages/DataRecoveryPage.vue'
 import OnboardingPage from '@/pages/OnboardingPage.vue'
 import { checkOnboardingStatus } from '@/composables/useOnboarding'
 
@@ -28,6 +29,7 @@ const routes = [
   { path: '/medicine', name: 'medicine', component: MedicinePage },
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
+  { path: '/data-recovery', name: 'data-recovery', component: DataRecoveryPage },
   { path: '/family', name: 'family', component: FamilyPage },
   { path: '/onboarding', name: 'onboarding', component: OnboardingPage },
 ]

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Settings, Baby, Moon, Bell, Download, Check, Users, ChevronRight, Trash2, Lock, User, ChevronDown } from 'lucide-vue-next'
+import { Settings, Baby, Moon, Bell, Check, Users, ChevronRight, Trash2, User, ChevronDown, Shield } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 import { useTheme } from '@/composables/useTheme'
 import { ROLE_LABELS } from '@/types'
 
 const router = useRouter()
-const { baby, babies, settings, updateCurrentBaby, updateSettings, feedings, sleeps, diapers, deleteBaby, canManageBabies, canExportData, needsJoin } = useBabyCare()
+const { baby, babies, settings, updateCurrentBaby, updateSettings, deleteBaby, canManageBabies, needsJoin } = useBabyCare()
 const { family, currentUserName, currentRole, needsJoin: familyNeedsJoin } = useFamily()
 const { theme, toggleTheme, isDark } = useTheme()
 
@@ -37,25 +37,6 @@ function handleToggleNotif() {
   updateSettings({ notifications: !settings.value.notifications })
 }
 
-function handleExport() {
-  if (!canExportData.value) return
-  const data = {
-    baby: baby.value,
-    babies: babies.value,
-    feedings: feedings.value,
-    sleeps: sleeps.value,
-    diapers: diapers.value,
-    family: family.value,
-    exportedAt: new Date().toISOString(),
-  }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `baby-care-export-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 const showCaregiverPicker = ref(false)
 
@@ -311,27 +292,24 @@ function handleDeleteBaby(babyId: string) {
 
     <section v-if="!needsJoin" class="mb-6">
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
-        <Download :size="14" /> 数据管理
+        <Shield :size="14" /> 数据管理
       </h2>
       <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm">
         <button
-          v-if="canExportData"
-          @click="handleExport"
+          @click="router.push('/data-recovery')"
           class="w-full flex items-center justify-between px-4 py-3.5 text-left"
         >
-          <div>
-            <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">导出数据</p>
-            <p class="text-[11px] text-warm-300 dark:text-warm-200">导出为 JSON 文件</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-peach-100 dark:bg-peach-500/20">
+              <Shield :size="18" class="text-peach-400" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">数据恢复中心</p>
+              <p class="text-[11px] text-warm-300 dark:text-warm-200">导出备份 · 导入恢复 · 冲突检测</p>
+            </div>
           </div>
-          <Download :size="16" class="text-warm-300 dark:text-warm-200" />
+          <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
         </button>
-        <div v-else class="flex items-center justify-between px-4 py-3.5">
-          <div>
-            <p class="text-sm font-semibold text-warm-400 dark:text-warm-200">导出数据</p>
-            <p class="text-[11px] text-warm-300 dark:text-warm-200">当前角色无导出权限</p>
-          </div>
-          <Lock :size="16" class="text-warm-200 dark:text-warm-300" />
-        </div>
       </div>
     </section>
 
