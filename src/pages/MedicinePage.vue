@@ -199,7 +199,9 @@ function openUsageModal(medicine: Medicine) {
 
 function handleRecordUsage() {
   if (!selectedMedicine.value) return
-  recordUsage(selectedMedicine.value.id, usageForm.value.quantity, usageForm.value.note)
+  if (usageForm.value.quantity <= 0 || usageForm.value.quantity > selectedMedicine.value.remainingQuantity) return
+  const ok = recordUsage(selectedMedicine.value.id, usageForm.value.quantity, usageForm.value.note)
+  if (!ok) return
   showUsageModal.value = false
   selectedMedicine.value = null
 }
@@ -926,7 +928,10 @@ function getChangeTypeStyle(type: StockChangeType) {
           <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">使用数量 ({{ selectedMedicine?.unit }})</label>
           <input v-model.number="usageForm.quantity" type="number" min="1" :max="selectedMedicine?.remainingQuantity || 1"
             class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
-          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-1">当前剩余: {{ selectedMedicine?.remainingQuantity }}{{ selectedMedicine?.unit }}</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-1">当前剩余: {{ selectedMedicine?.remainingQuantity }}{{ selectedMedicine?.unit }} · 最多可使用 {{ selectedMedicine?.remainingQuantity }}{{ selectedMedicine?.unit }}</p>
+          <p v-if="usageForm.quantity > (selectedMedicine?.remainingQuantity ?? 0)" class="text-[10px] text-red-500 font-bold mt-1">
+            使用数量不能超过剩余库存（{{ selectedMedicine?.remainingQuantity }}{{ selectedMedicine?.unit }}）
+          </p>
         </div>
         <div class="mb-3">
           <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
@@ -935,7 +940,11 @@ function getChangeTypeStyle(type: StockChangeType) {
         </div>
         <div class="flex gap-2">
           <button @click="showUsageModal = false" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10">取消</button>
-          <button @click="handleRecordUsage" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-peach-400 hover:bg-peach-500 shadow-md shadow-peach-200 dark:shadow-peach-500/20">确认</button>
+          <button
+            @click="handleRecordUsage"
+            :disabled="usageForm.quantity <= 0 || usageForm.quantity > (selectedMedicine?.remainingQuantity ?? 0)"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-peach-400 hover:bg-peach-500 shadow-md shadow-peach-200 dark:shadow-peach-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >确认</button>
         </div>
       </div>
     </div>

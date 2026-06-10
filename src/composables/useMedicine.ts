@@ -251,11 +251,13 @@ export function useMedicine() {
   function recordUsage(medicineId: string, quantity: number, note: string = '') {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
+    if (quantity <= 0) return false
     const medicine = medicines.value.find(m => m.id === medicineId)
     if (!medicine) return false
+    if (quantity > medicine.remainingQuantity) return false
 
     const prevQty = medicine.remainingQuantity
-    medicine.remainingQuantity = Math.max(0, medicine.remainingQuantity - quantity)
+    medicine.remainingQuantity -= quantity
     const newQty = medicine.remainingQuantity
 
     medicineUsages.value.unshift({
@@ -328,10 +330,20 @@ export function useMedicine() {
     if (!usage) return false
     const medicine = medicines.value.find(m => m.id === usage.medicineId)
     if (medicine) {
-      medicine.remainingQuantity = Math.min(
-        medicine.totalQuantity,
-        medicine.remainingQuantity + usage.quantity
-      )
+      const prevQty = medicine.remainingQuantity
+      medicine.remainingQuantity += usage.quantity
+      stockChanges.value.unshift({
+        id: genId(),
+        medicineId: usage.medicineId,
+        babyId: usage.babyId,
+        changeType: 'adjustment',
+        quantity: usage.quantity,
+        previousQuantity: prevQty,
+        newQuantity: medicine.remainingQuantity,
+        note: `冲正：撤销使用记录（数量${usage.quantity}）`,
+        createdBy: currentUserId.value,
+        timestamp: new Date().toISOString(),
+      })
     }
     medicineUsages.value = medicineUsages.value.filter(u => u.id !== id)
     persistData()
