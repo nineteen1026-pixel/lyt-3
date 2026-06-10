@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import type { ReminderItem, MissedRecord, PatternSummary, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 import {
   feedings, sleeps, diapers, reminders, missedRecords,
-  currentBabyId, settings, persistData, genId,
+  currentBabyId, currentUserId, settings, persistData, genId,
 } from './useSharedStore'
 
 function timeAgo(ms: number): string {
@@ -433,6 +433,7 @@ export function useReminder() {
       amount: feedingType === 'formula' ? amount : 0,
       note: '漏记补录',
       createdBy: 'system',
+      caregiverId: currentUserId.value,
     })
     missed.status = 'filled'
     persistData()
@@ -455,6 +456,7 @@ export function useReminder() {
       quality,
       note: '漏记补录',
       createdBy: 'system',
+      caregiverId: currentUserId.value,
     })
     missed.status = 'filled'
     persistData()
@@ -472,6 +474,7 @@ export function useReminder() {
       diaperType,
       note: '漏记补录',
       createdBy: 'system',
+      caregiverId: currentUserId.value,
     })
     missed.status = 'filled'
     persistData()

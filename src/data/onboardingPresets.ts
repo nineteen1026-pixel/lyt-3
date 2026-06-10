@@ -419,6 +419,7 @@ export function generateSampleData(
         amount: isBreast ? 0 : preset.feeding.typicalAmount + randomInt(-20, 20),
         note: '',
         createdBy: userId,
+        caregiverId: userId,
       })
     }
 
@@ -434,6 +435,7 @@ export function generateSampleData(
         quality: Math.random() < 0.7 ? 'deep' : 'light',
         note: '夜间睡眠',
         createdBy: userId,
+        caregiverId: userId,
       })
     }
 
@@ -453,6 +455,7 @@ export function generateSampleData(
         quality: Math.random() < 0.5 ? 'deep' : Math.random() < 0.7 ? 'light' : 'fussy',
         note: '',
         createdBy: userId,
+        caregiverId: userId,
       })
     }
 
@@ -470,6 +473,7 @@ export function generateSampleData(
         diaperType,
         note: '',
         createdBy: userId,
+        caregiverId: userId,
       })
     }
   }
@@ -490,6 +494,7 @@ export function generateSampleData(
       headCircumference: Math.round((34 + monthFactor * 1.2) * 10) / 10,
       note: cp === 0 ? '出生' : '',
       createdBy: userId,
+      caregiverId: userId,
     })
   }
 
@@ -522,6 +527,7 @@ export function generateSampleData(
       location: '社区卫生中心',
       note: '',
       createdBy: userId,
+      caregiverId: userId,
     }
   })
 
@@ -541,6 +547,7 @@ export function generateSampleData(
       result: '各项指标正常',
       note: m === 0 ? '出生体检' : '',
       createdBy: userId,
+      caregiverId: userId,
     })
   }
 
