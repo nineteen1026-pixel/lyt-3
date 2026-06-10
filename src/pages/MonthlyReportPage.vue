@@ -1,9 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { CalendarDays, ChevronLeft, ChevronRight, TrendingUp, AlertTriangle, Lightbulb, Milk, Moon, Droplets, AlertCircle, Info, ShieldAlert } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { CalendarDays, ChevronLeft, ChevronRight, TrendingUp, AlertTriangle, Lightbulb, Milk, Moon, Droplets, AlertCircle, Info, ShieldAlert, User, ChevronDown, Check, Filter } from 'lucide-vue-next'
 import { useMonthlyReport } from '@/composables/useMonthlyReport'
+import { useFamily } from '@/composables/useFamily'
+import { useBabyCare } from '@/composables/useBabyCare'
 
-const { selectedYear, selectedMonth, monthlyReport, prevMonth, nextMonth, canGoNext } = useMonthlyReport()
+const { selectedYear, selectedMonth, monthlyReport, prevMonth, nextMonth, canGoNext, filterCaregiverId, setCaregiverFilter } = useMonthlyReport()
+const { family } = useFamily()
+const { getMemberName } = useBabyCare()
+
+const showCaregiverPicker = ref(false)
+
+const familyMembers = computed(() => {
+  if (!family.value) return []
+  return family.value.members
+})
+
+const filterMemberName = computed(() => {
+  if (!filterCaregiverId.value) return '全部照护人'
+  return getMemberName(filterCaregiverId.value)
+})
+
+function selectCaregiver(id: string | undefined) {
+  setCaregiverFilter(id)
+  showCaregiverPicker.value = false
+}
 
 const monthLabel = computed(() => `${selectedYear.value}年${selectedMonth.value}月`)
 
@@ -79,6 +100,53 @@ const breastPercent = computed(() => {
         :class="!canGoNext ? 'opacity-30 cursor-not-allowed' : ''">
         <ChevronRight :size="18" class="text-warm-400 dark:text-cream-200" />
       </button>
+    </div>
+
+    <div v-if="familyMembers.length > 0" class="mb-5 relative">
+      <button
+        @click="showCaregiverPicker = !showCaregiverPicker"
+        class="w-full bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-2xl px-4 py-3 text-left flex items-center justify-between shadow-sm"
+      >
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+            <User :size="16" class="text-peach-400" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">{{ filterMemberName }}</p>
+            <p class="text-[11px] text-warm-300 dark:text-warm-200">按照护人筛选数据</p>
+          </div>
+        </div>
+        <ChevronDown :size="18" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+      </button>
+      <div
+        v-if="showCaregiverPicker"
+        class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-2xl shadow-lg z-10 py-1 max-h-56 overflow-y-auto"
+      >
+        <button
+          @click="selectCaregiver(undefined)"
+          class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+          :class="!filterCaregiverId ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+        >
+          <div class="w-7 h-7 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+            <Filter :size="14" class="text-warm-400" />
+          </div>
+          <span>全部照护人</span>
+          <Check v-if="!filterCaregiverId" :size="16" class="ml-auto text-peach-400" />
+        </button>
+        <button
+          v-for="member in familyMembers"
+          :key="member.id"
+          @click="selectCaregiver(member.id)"
+          class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+          :class="filterCaregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+        >
+          <div class="w-7 h-7 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+            <User :size="14" class="text-warm-400" />
+          </div>
+          <span>{{ member.name }}</span>
+          <Check v-if="filterCaregiverId === member.id" :size="16" class="ml-auto text-peach-400" />
+        </button>
+      </div>
     </div>
 
     <div v-if="!hasData" class="text-center py-16">

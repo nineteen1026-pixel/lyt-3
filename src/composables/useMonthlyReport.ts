@@ -4,33 +4,45 @@ import {
   feedings, sleeps, diapers, currentBabyId, babies,
 } from './useSharedStore'
 
+const filterCaregiverId = ref<string | undefined>(undefined)
+
+function setCaregiverFilter(id: string | undefined) {
+  filterCaregiverId.value = id
+}
+
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate()
 }
 
 function buildDayData(
   year: number, month: number, day: number,
-  babyId: string
+  babyId: string, caregiverId?: string
 ): MonthlyDayData {
   const dayStart = new Date(year, month - 1, day).getTime()
   const dayEnd = dayStart + 86400000
   const dateStr = `${month}/${day}`
 
-  const dayFeedings = feedings.value.filter(r => {
+  let dayFeedings = feedings.value.filter(r => {
     if (r.babyId !== babyId) return false
     const t = new Date(r.timestamp).getTime()
     return t >= dayStart && t < dayEnd
   })
-  const daySleeps = sleeps.value.filter(r => {
+  let daySleeps = sleeps.value.filter(r => {
     if (r.babyId !== babyId) return false
     const t = new Date(r.startTime).getTime()
     return t >= dayStart && t < dayEnd
   })
-  const dayDiapers = diapers.value.filter(r => {
+  let dayDiapers = diapers.value.filter(r => {
     if (r.babyId !== babyId) return false
     const t = new Date(r.timestamp).getTime()
     return t >= dayStart && t < dayEnd
   })
+
+  if (caregiverId) {
+    dayFeedings = dayFeedings.filter(r => r.caregiverId === caregiverId)
+    daySleeps = daySleeps.filter(r => r.caregiverId === caregiverId)
+    dayDiapers = dayDiapers.filter(r => r.caregiverId === caregiverId)
+  }
 
   const sleepMinutes = daySleeps.reduce((acc, s) => {
     const diff = new Date(s.endTime).getTime() - new Date(s.startTime).getTime()
@@ -281,7 +293,7 @@ export function useMonthlyReport() {
 
     const days: MonthlyDayData[] = []
     for (let d = 1; d <= daysInMonth; d++) {
-      days.push(buildDayData(year, month, d, babyId))
+      days.push(buildDayData(year, month, d, babyId, filterCaregiverId.value))
     }
 
     const validDays = days.filter(d => d.feedCount > 0 || d.sleepMinutes > 0 || d.diaperCount > 0)
@@ -357,5 +369,7 @@ export function useMonthlyReport() {
     prevMonth,
     nextMonth,
     canGoNext,
+    filterCaregiverId,
+    setCaregiverFilter,
   }
 }

@@ -454,6 +454,7 @@ const trendData = computed(() => {
                 <span v-if="vaccine.location" class="text-[10px] text-warm-300 dark:text-warm-200 flex items-center gap-0.5">
                   <MapPin :size="10" /> {{ vaccine.location }}
                 </span>
+                <span class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName(vaccine.caregiverId) }}</span>
               </div>
               <div class="flex items-center gap-2 mt-1">
                 <span
