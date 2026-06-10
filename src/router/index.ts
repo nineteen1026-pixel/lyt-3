@@ -13,6 +13,7 @@ import MonthlyReportPage from '@/pages/MonthlyReportPage.vue'
 import KnowledgePage from '@/pages/KnowledgePage.vue'
 import MedicinePage from '@/pages/MedicinePage.vue'
 import OnboardingPage from '@/pages/OnboardingPage.vue'
+import { checkOnboardingStatus } from '@/composables/useOnboarding'
 
 const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
@@ -40,7 +41,7 @@ const ONBOARDING_KEY = 'baby-care:onboarding-done'
 
 router.beforeEach((to) => {
   if (to.path === '/onboarding') return true
-  const done = localStorage.getItem(ONBOARDING_KEY)
+  const done = checkOnboardingStatus()
   if (!done) return { path: '/onboarding' }
   return true
 })

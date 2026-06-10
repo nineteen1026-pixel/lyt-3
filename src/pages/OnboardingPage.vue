@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Heart, ChevronRight, ChevronLeft, Milk, Moon, Droplets, Bell, Check, Sparkles, BookOpen, Home, Users, Syringe, Stethoscope, Sun, Bath, Activity, Pill } from 'lucide-vue-next'
+import { Baby, Heart, ChevronRight, ChevronLeft, Milk, Moon, Droplets, Bell, Check, Sparkles, BookOpen, Home, Users, Syringe, Stethoscope, Sun, Bath, Activity, Pill, AlertTriangle, Shield, RefreshCw } from 'lucide-vue-next'
 import { useOnboarding } from '@/composables/useOnboarding'
 
 const router = useRouter()
@@ -11,8 +11,9 @@ const {
   familyName, userName,
   enableNotifications, enableDarkMode, loadSampleData,
   reminderEnabled,
+  hasExistingData, keepExistingData,
   ageMonths, currentPreset, reminderSummary,
-  completeOnboarding,
+  completeOnboarding, prefillFromExistingData,
 } = useOnboarding()
 
 const animating = ref(false)
@@ -38,6 +39,12 @@ function prevStep() {
 }
 
 function handleFinish() {
+  completeOnboarding()
+  router.replace('/')
+}
+
+function handleSkipAndKeep() {
+  keepExistingData.value = true
   completeOnboarding()
   router.replace('/')
 }
@@ -73,8 +80,15 @@ const reminderItems = computed(() => [
 ])
 
 watch(babyBirthDate, (val) => {
-  if (val) {
+  if (val && !hasExistingData.value) {
     loadSampleData.value = true
+  }
+})
+
+onMounted(() => {
+  if (hasExistingData.value) {
+    prefillFromExistingData()
+    keepExistingData.value = true
   }
 })
 </script>
@@ -128,6 +142,27 @@ watch(babyBirthDate, (val) => {
                 <div class="text-left">
                   <p class="text-sm font-bold text-warm-500 dark:text-cream-100 mb-1">智能引导</p>
                   <p class="text-[11px] text-warm-300 dark:text-warm-200 leading-relaxed">只需几分钟，为宝宝定制专属照护方案，自动设置喂养间隔、睡眠节奏、疫苗提醒等</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="hasExistingData" class="mt-4 w-full">
+              <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl px-5 py-4">
+                <div class="flex items-start gap-3">
+                  <AlertTriangle :size="18" class="text-amber-500 mt-0.5 shrink-0" />
+                  <div class="text-left flex-1">
+                    <p class="text-sm font-bold text-amber-700 dark:text-amber-400 mb-1">检测到已有数据</p>
+                    <p class="text-[11px] text-amber-600 dark:text-amber-300/80 leading-relaxed mb-3">
+                      我们发现你之前已经记录过宝宝数据。你可以保留现有数据并快速进入应用，或重新配置引导。
+                    </p>
+                    <button
+                      @click="handleSkipAndKeep"
+                      class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2.5 font-bold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    >
+                      <Shield :size="14" />
+                      保留数据并快速进入
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -429,12 +464,74 @@ watch(babyBirthDate, (val) => {
             <div class="w-24 h-24 rounded-3xl bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center mb-5 shadow-lg shadow-mint-100 dark:shadow-mint-500/10">
               <Check :size="48" class="text-mint-500" />
             </div>
-            <h1 class="text-2xl font-extrabold text-warm-500 dark:text-cream-100 font-display mb-3">准备就绪！</h1>
-            <p class="text-warm-300 dark:text-warm-200 text-sm leading-relaxed max-w-xs mb-6">
-              已为{{ babyName || '宝宝' }}定制{{ currentPreset.label }}照护方案，<br/>开始记录美好时光吧
+            <h1 class="text-2xl font-extrabold text-warm-500 dark:text-cream-100 font-display mb-3">
+              {{ hasExistingData ? '完成设置' : '准备就绪！' }}
+            </h1>
+            <p class="text-warm-300 dark:text-warm-200 text-sm leading-relaxed max-w-xs mb-5">
+              <template v-if="hasExistingData && keepExistingData">
+                将保留你的现有数据，<br/>应用新的提醒和偏好设置
+              </template>
+              <template v-else>
+                已为{{ babyName || '宝宝' }}定制{{ currentPreset.label }}照护方案，<br/>开始记录美好时光吧
+              </template>
             </p>
 
-            <div class="w-full space-y-2.5 mb-6">
+            <div v-if="hasExistingData" class="w-full mb-5">
+              <p class="text-xs font-bold text-warm-400 dark:text-warm-100 text-left mb-2.5">数据处理方式</p>
+              <div class="space-y-2">
+                <button
+                  type="button"
+                  @click="keepExistingData = true"
+                  class="w-full text-left rounded-xl px-4 py-3 transition-all border-2 flex items-start gap-3"
+                  :class="keepExistingData
+                    ? 'bg-mint-50 dark:bg-mint-500/10 border-mint-400'
+                    : 'bg-white dark:bg-[#2a1f1a] border-cream-200 dark:border-warm-500/20'"
+                >
+                  <div class="w-8 h-8 rounded-lg bg-mint-100 dark:bg-mint-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <Shield :size="14" class="text-mint-500" />
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-xs font-bold text-warm-500 dark:text-cream-100 mb-0.5">保留现有数据（推荐）</p>
+                    <p class="text-[10px] text-warm-300 dark:text-warm-200 leading-relaxed">
+                      保留所有宝宝记录和历史数据，仅更新提醒和偏好设置，不会丢失任何数据
+                    </p>
+                  </div>
+                  <div
+                    class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors"
+                    :class="keepExistingData ? 'bg-mint-400 border-mint-400' : 'border-cream-300 dark:border-warm-500/30'"
+                  >
+                    <Check v-if="keepExistingData" :size="12" class="text-white" />
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  @click="keepExistingData = false"
+                  class="w-full text-left rounded-xl px-4 py-3 transition-all border-2 flex items-start gap-3"
+                  :class="!keepExistingData
+                    ? 'bg-peach-50 dark:bg-peach-500/10 border-peach-400'
+                    : 'bg-white dark:bg-[#2a1f1a] border-cream-200 dark:border-warm-500/20'"
+                >
+                  <div class="w-8 h-8 rounded-lg bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <RefreshCw :size="14" class="text-peach-400" />
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-xs font-bold text-warm-500 dark:text-cream-100 mb-0.5">重置为新配置</p>
+                    <p class="text-[10px] text-warm-300 dark:text-warm-200 leading-relaxed">
+                      清空所有现有数据，按当前配置重新开始。<span class="text-peach-500 font-semibold">此操作不可恢复</span>
+                    </p>
+                  </div>
+                  <div
+                    class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors"
+                    :class="!keepExistingData ? 'bg-peach-400 border-peach-400' : 'border-cream-300 dark:border-warm-500/30'"
+                  >
+                    <Check v-if="!keepExistingData" :size="12" class="text-white" />
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="!hasExistingData || !keepExistingData" class="w-full space-y-2.5 mb-5">
               <div class="flex items-center gap-3 bg-white dark:bg-[#2a1f1a] rounded-xl px-4 py-3 shadow-sm">
                 <div class="w-8 h-8 rounded-lg bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center shrink-0">
                   <Baby :size="14" class="text-peach-400" />
