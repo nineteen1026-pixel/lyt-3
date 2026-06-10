@@ -6,24 +6,27 @@ import {
   Check, X, Trash2, ShoppingCart, History, ChevronDown,
   ChevronRight, PackageCheck, AlertCircle, TrendingDown,
   Search, ArrowUpDown, BarChart3, Timer, Sparkles, Edit3,
+  FileText,
 } from 'lucide-vue-next'
 import { useMedicine } from '@/composables/useMedicine'
-import type { Medicine, MedicineCategory, MedicineSortKey, MedicineSortOrder } from '@/types'
+import type { Medicine, MedicineCategory, MedicineSortKey, MedicineSortOrder, StockChangeType } from '@/types'
 import { MEDICINE_CATEGORY_LABELS } from '@/types'
 
 const router = useRouter()
 const {
-  medicines, usages, expiredMedicines, expiringSoonMedicines,
+  medicines, usages, stockChanges, expiredMedicines, expiringSoonMedicines,
   lowStockMedicines, outOfStockMedicines, medicationItems,
-  nursingSupplyItems, alertCount, inventorySummary, canAddRecord, canDeleteRecord,
+  nursingSupplyItems, alertCount, inventorySummary, canAddRecord, canDeleteRecord, canEditRecord,
   getMemberName, getStockStatus, getDaysUntilExpiry,
-  getUsageForMedicine, getRecentUsages, getMedicineAnalytics,
+  getUsageForMedicine, getRecentUsages, getStockChangesForMedicine, getRecentStockChanges,
+  getMedicineAnalytics,
   searchMedicines, sortMedicines, addMedicine, deleteMedicine,
   recordUsage, restockMedicine, deleteUsage, updateMedicine,
 } = useMedicine()
 
 type TabKey = 'overview' | 'inventory' | 'usage' | 'alerts'
 const activeTab = ref<TabKey>('overview')
+const usageSubTab = ref<'usage' | 'stock'>('usage')
 
 const tabs: { key: TabKey; label: string; icon: typeof Pill }[] = [
   { key: 'overview', label: '概览', icon: BarChart3 },
@@ -58,7 +61,7 @@ const newMedicine = ref({
 })
 
 const usageForm = ref({ quantity: 1, note: '' })
-const restockForm = ref({ quantity: 1 })
+const restockForm = ref({ quantity: 1, newExpiryDate: '', note: '' })
 const editForm = ref({
   name: '',
   category: 'medication' as MedicineCategory,
@@ -203,13 +206,24 @@ function handleRecordUsage() {
 
 function openRestockModal(medicine: Medicine, suggestedQty?: number) {
   selectedMedicine.value = medicine
-  restockForm.value = { quantity: suggestedQty || 1 }
+  const isExpired = medicine.expiryDate ? new Date(medicine.expiryDate).getTime() < Date.now() : false
+  restockForm.value = {
+    quantity: suggestedQty || 1,
+    newExpiryDate: '',
+    note: '',
+  }
+  if (isExpired) {
+    restockForm.value.note = '新批次替换过期物品'
+  }
   showRestockModal.value = true
 }
 
 function handleRestock() {
   if (!selectedMedicine.value) return
-  restockMedicine(selectedMedicine.value.id, restockForm.value.quantity)
+  const newExpiry = restockForm.value.newExpiryDate
+    ? new Date(restockForm.value.newExpiryDate).toISOString()
+    : undefined
+  restockMedicine(selectedMedicine.value.id, restockForm.value.quantity, newExpiry, restockForm.value.note)
   showRestockModal.value = false
   selectedMedicine.value = null
 }
@@ -253,6 +267,22 @@ function handleDeleteMedicine(id: string) {
 
 function handleDeleteUsage(id: string) {
   deleteUsage(id)
+}
+
+const STOCK_CHANGE_LABELS: Record<StockChangeType, string> = {
+  restock: '补货',
+  usage: '使用',
+  adjustment: '调整',
+  expiry_clear: '过期清理',
+}
+
+function getChangeTypeStyle(type: StockChangeType) {
+  switch (type) {
+    case 'restock': return 'bg-mint-100 dark:bg-mint-500/20 text-mint-500'
+    case 'usage': return 'bg-peach-100 dark:bg-peach-500/20 text-peach-500'
+    case 'adjustment': return 'bg-cream-100 dark:bg-warm-500/10 text-warm-400 dark:text-warm-100'
+    case 'expiry_clear': return 'bg-red-100 dark:bg-red-500/20 text-red-500'
+  }
 }
 </script>
 
@@ -366,7 +396,7 @@ function handleDeleteUsage(id: string) {
                 <span class="px-2 py-1 rounded-lg text-[10px] font-bold bg-peach-100 dark:bg-peach-500/20 text-peach-500">
                   建议补{{ item.analytics.restockSuggestedQuantity }}{{ item.medicine.unit }}
                 </span>
-                <button v-if="canAddRecord" @click="openRestockModal(item.medicine, item.analytics.restockSuggestedQuantity || undefined)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
+                <button v-if="canEditRecord" @click="openRestockModal(item.medicine, item.analytics.restockSuggestedQuantity || undefined)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
                   补货
                 </button>
               </div>
@@ -437,7 +467,7 @@ function handleDeleteUsage(id: string) {
                 </p>
               </div>
               <div class="flex gap-1.5">
-                <button @click="openRestockModal(med)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
+                <button v-if="canEditRecord" @click="openRestockModal(med)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
                   补货
                 </button>
                 <button v-if="canDeleteRecord" @click="handleDeleteMedicine(med.id)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-red-100 dark:bg-red-500/20 text-red-500">
@@ -466,7 +496,7 @@ function handleDeleteUsage(id: string) {
                   {{ MEDICINE_CATEGORY_LABELS[med.category] }} · 请尽快补货
                 </p>
               </div>
-              <button @click="openRestockModal(med)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
+              <button v-if="canEditRecord" @click="openRestockModal(med)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
                 补货
               </button>
             </div>
@@ -494,7 +524,7 @@ function handleDeleteUsage(id: string) {
                   <span class="text-[10px] text-amber-500 font-bold">{{ med.remainingQuantity }}/{{ med.totalQuantity }}{{ med.unit }}</span>
                 </div>
               </div>
-              <button @click="openRestockModal(med)" class="ml-2 px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
+              <button v-if="canEditRecord" @click="openRestockModal(med)" class="ml-2 px-2 py-1 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500">
                 补货
               </button>
             </div>
@@ -731,7 +761,7 @@ function handleDeleteUsage(id: string) {
                 <Check :size="12" /> 记录使用
               </button>
               <button
-                v-if="canAddRecord"
+                v-if="canEditRecord"
                 @click="openRestockModal(med)"
                 class="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold bg-mint-100 dark:bg-mint-500/20 text-mint-500 hover:bg-mint-200 dark:hover:bg-mint-500/30"
               >
@@ -769,6 +799,30 @@ function handleDeleteUsage(id: string) {
                 </div>
               </div>
             </div>
+
+            <div v-if="getStockChangesForMedicine(med.id).length > 0" class="mt-3 pt-2 border-t border-cream-100 dark:border-warm-500/10">
+              <p class="text-[10px] font-bold text-warm-400 dark:text-warm-100 mb-1.5 flex items-center gap-1">
+                <FileText :size="10" /> 库存变动
+              </p>
+              <div class="space-y-1">
+                <div
+                  v-for="change in getStockChangesForMedicine(med.id).slice(0, 5)"
+                  :key="change.id"
+                  class="flex items-center justify-between text-[10px]"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-1 py-0.5 rounded text-[8px] font-bold" :class="getChangeTypeStyle(change.changeType)">{{ STOCK_CHANGE_LABELS[change.changeType] }}</span>
+                    <span class="text-warm-300 dark:text-warm-200">{{ formatTime(change.timestamp) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="font-bold" :class="change.quantity > 0 ? 'text-mint-500' : 'text-peach-500'">
+                      {{ change.quantity > 0 ? '+' : '' }}{{ change.quantity }}
+                    </span>
+                    <span class="text-warm-300 dark:text-warm-200">{{ change.previousQuantity }}→{{ change.newQuantity }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -776,37 +830,92 @@ function handleDeleteUsage(id: string) {
 
     <!-- Usage Tab -->
     <section v-if="activeTab === 'usage'">
-      <div v-if="getRecentUsages().length === 0" class="text-center py-10">
-        <History :size="32" class="mx-auto text-warm-300 dark:text-warm-200 mb-2" />
-        <p class="text-sm text-warm-300 dark:text-warm-200">暂无使用记录</p>
+      <div class="flex gap-1.5 mb-3">
+        <button
+          @click="usageSubTab = 'usage'"
+          class="px-3 py-1 rounded-lg text-[10px] font-bold transition-colors"
+          :class="usageSubTab === 'usage' ? 'bg-peach-100 dark:bg-peach-500/20 text-peach-500' : 'bg-cream-100 dark:bg-warm-500/10 text-warm-300 dark:text-warm-200'"
+        >使用记录</button>
+        <button
+          @click="usageSubTab = 'stock'"
+          class="px-3 py-1 rounded-lg text-[10px] font-bold transition-colors"
+          :class="usageSubTab === 'stock' ? 'bg-mint-100 dark:bg-mint-500/20 text-mint-500' : 'bg-cream-100 dark:bg-warm-500/10 text-warm-300 dark:text-warm-200'"
+        >库存变动</button>
       </div>
 
-      <div class="space-y-2">
-        <div
-          v-for="usage in getRecentUsages()"
-          :key="usage.id"
-          class="bg-white dark:bg-[#2a1f1a] rounded-xl px-4 py-3 shadow-sm"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
-                {{ medicines.find(m => m.id === usage.medicineId)?.name || '未知物品' }}
-              </p>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ formatTime(usage.timestamp) }}</span>
-                <span class="text-[10px] font-bold text-peach-500">-{{ usage.quantity }}{{ medicines.find(m => m.id === usage.medicineId)?.unit || '' }}</span>
+      <template v-if="usageSubTab === 'usage'">
+        <div v-if="getRecentUsages().length === 0" class="text-center py-10">
+          <History :size="32" class="mx-auto text-warm-300 dark:text-warm-200 mb-2" />
+          <p class="text-sm text-warm-300 dark:text-warm-200">暂无使用记录</p>
+        </div>
+
+        <div class="space-y-2">
+          <div
+            v-for="usage in getRecentUsages()"
+            :key="usage.id"
+            class="bg-white dark:bg-[#2a1f1a] rounded-xl px-4 py-3 shadow-sm"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">
+                  {{ medicines.find(m => m.id === usage.medicineId)?.name || '未知物品' }}
+                </p>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ formatTime(usage.timestamp) }}</span>
+                  <span class="text-[10px] font-bold text-peach-500">-{{ usage.quantity }}{{ medicines.find(m => m.id === usage.medicineId)?.unit || '' }}</span>
+                </div>
+                <p v-if="usage.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">{{ usage.note }}</p>
               </div>
-              <p v-if="usage.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">{{ usage.note }}</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ getMemberName(usage.createdBy) }}</span>
-              <button v-if="canDeleteRecord" @click="handleDeleteUsage(usage.id)" class="text-warm-300 hover:text-red-400">
-                <X :size="12" />
-              </button>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ getMemberName(usage.createdBy) }}</span>
+                <button v-if="canDeleteRecord" @click="handleDeleteUsage(usage.id)" class="text-warm-300 hover:text-red-400">
+                  <X :size="12" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
+
+      <template v-if="usageSubTab === 'stock'">
+        <div v-if="getRecentStockChanges().length === 0" class="text-center py-10">
+          <FileText :size="32" class="mx-auto text-warm-300 dark:text-warm-200 mb-2" />
+          <p class="text-sm text-warm-300 dark:text-warm-200">暂无库存变动记录</p>
+        </div>
+
+        <div class="space-y-2">
+          <div
+            v-for="change in getRecentStockChanges()"
+            :key="change.id"
+            class="bg-white dark:bg-[#2a1f1a] rounded-xl px-4 py-3 shadow-sm"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold" :class="getChangeTypeStyle(change.changeType)">{{ STOCK_CHANGE_LABELS[change.changeType] }}</span>
+                  <p class="text-sm font-semibold text-warm-500 dark:text-cream-100 truncate">
+                    {{ medicines.find(m => m.id === change.medicineId)?.name || '未知物品' }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ formatTime(change.timestamp) }}</span>
+                  <span class="text-[10px] font-bold" :class="change.quantity > 0 ? 'text-mint-500' : 'text-peach-500'">
+                    {{ change.quantity > 0 ? '+' : '' }}{{ change.quantity }}{{ medicines.find(m => m.id === change.medicineId)?.unit || '' }}
+                  </span>
+                  <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ change.previousQuantity }}→{{ change.newQuantity }}</span>
+                </div>
+                <p v-if="change.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">{{ change.note }}</p>
+                <div v-if="change.previousExpiryDate || change.newExpiryDate" class="flex items-center gap-1 mt-0.5 text-[10px]">
+                  <span v-if="change.previousExpiryDate" class="text-warm-300 dark:text-warm-200">效期: {{ formatDate(change.previousExpiryDate) }}</span>
+                  <span v-if="change.previousExpiryDate && change.newExpiryDate" class="text-warm-300 dark:text-warm-200">→</span>
+                  <span v-if="change.newExpiryDate" class="text-warm-400 dark:text-warm-100">{{ formatDate(change.newExpiryDate) }}</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-warm-300 dark:text-warm-200">{{ getMemberName(change.createdBy) }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
     </section>
 
     <!-- Usage Modal -->
@@ -833,7 +942,7 @@ function handleDeleteUsage(id: string) {
 
     <!-- Restock Modal -->
     <div v-if="showRestockModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="showRestockModal = false">
-      <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-5 w-[90%] max-w-sm shadow-xl">
+      <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-5 w-[90%] max-w-sm shadow-xl max-h-[85vh] overflow-y-auto">
         <h3 class="text-sm font-bold text-warm-500 dark:text-cream-100 mb-3">补货 - {{ selectedMedicine?.name }}</h3>
         <div class="mb-3">
           <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">补货数量 ({{ selectedMedicine?.unit }})</label>
@@ -844,6 +953,46 @@ function handleDeleteUsage(id: string) {
             智能建议: 补 {{ getMedicineAnalytics(selectedMedicine.id).restockSuggestedQuantity }}{{ selectedMedicine?.unit }}
             <button @click="restockForm.quantity = getMedicineAnalytics(selectedMedicine!.id).restockSuggestedQuantity!" class="ml-1 text-peach-500 font-bold underline">采纳</button>
           </p>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">新批次有效期</label>
+          <input v-model="restockForm.newExpiryDate" type="date"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          <p v-if="selectedMedicine?.expiryDate" class="text-[10px] mt-1"
+            :class="new Date(selectedMedicine.expiryDate).getTime() < Date.now() ? 'text-red-400' : 'text-warm-300 dark:text-warm-200'">
+            当前有效期: {{ formatDate(selectedMedicine.expiryDate) }}
+            <span v-if="new Date(selectedMedicine.expiryDate).getTime() < Date.now()" class="font-bold">（已过期，补货后将清除过期状态）</span>
+            <span v-else>（留空则保持不变）</span>
+          </p>
+          <p v-else class="text-[10px] text-warm-300 dark:text-warm-200 mt-1">暂无有效期信息（留空则不设置）</p>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
+          <input v-model="restockForm.note" type="text" placeholder="可选备注..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+        </div>
+        <div v-if="selectedMedicine && getStockChangesForMedicine(selectedMedicine.id).length > 0" class="mb-3 border-t border-cream-200 dark:border-warm-500/20 pt-3">
+          <p class="text-[10px] font-bold text-warm-400 dark:text-warm-100 mb-1.5 flex items-center gap-1">
+            <FileText :size="10" /> 最近库存变动
+          </p>
+          <div class="space-y-1">
+            <div
+              v-for="change in getStockChangesForMedicine(selectedMedicine.id).slice(0, 5)"
+              :key="change.id"
+              class="flex items-center justify-between text-[10px]"
+            >
+              <div class="flex items-center gap-1.5">
+                <span class="px-1 py-0.5 rounded text-[8px] font-bold" :class="getChangeTypeStyle(change.changeType)">{{ STOCK_CHANGE_LABELS[change.changeType] }}</span>
+                <span class="text-warm-300 dark:text-warm-200">{{ formatTime(change.timestamp) }}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold" :class="change.quantity > 0 ? 'text-mint-500' : 'text-peach-500'">
+                  {{ change.quantity > 0 ? '+' : '' }}{{ change.quantity }}
+                </span>
+                <span class="text-warm-300 dark:text-warm-200">({{ change.previousQuantity }}→{{ change.newQuantity }})</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="flex gap-2">
           <button @click="showRestockModal = false" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10">取消</button>

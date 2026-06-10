@@ -300,6 +300,23 @@ export interface MedicineUsage {
   createdBy: string
 }
 
+export type StockChangeType = 'restock' | 'usage' | 'adjustment' | 'expiry_clear'
+
+export interface StockChangeRecord {
+  id: string
+  medicineId: string
+  babyId: string
+  changeType: StockChangeType
+  quantity: number
+  previousQuantity: number
+  newQuantity: number
+  previousExpiryDate?: string
+  newExpiryDate?: string
+  note: string
+  createdBy: string
+  timestamp: string
+}
+
 export const MEDICINE_CATEGORY_LABELS: Record<MedicineCategory, string> = {
   medication: '药品',
   nursing_supply: '护理用品',

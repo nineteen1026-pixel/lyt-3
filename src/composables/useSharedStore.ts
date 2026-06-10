@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
-import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers, mockGrowths, mockVaccines, mockCheckups, mockMedicines, mockMedicineUsages } from '@/data/mock'
+import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers, mockGrowths, mockVaccines, mockCheckups, mockMedicines, mockMedicineUsages, mockStockChanges } from '@/data/mock'
 
 const LS_KEYS = {
   family: 'baby-care:family',
@@ -17,6 +17,7 @@ const LS_KEYS = {
   missedRecords: 'baby-care:missed-records',
   medicines: 'baby-care:medicines',
   medicineUsages: 'baby-care:medicine-usages',
+  stockChanges: 'baby-care:stock-changes',
   currentBabyId: 'baby-care:current-baby-id',
   initialized: 'baby-care:initialized',
 }
@@ -80,6 +81,7 @@ export const reminders = ref<ReminderItem[]>(loadLS<ReminderItem[]>(LS_KEYS.remi
 export const missedRecords = ref<MissedRecord[]>(loadLS<MissedRecord[]>(LS_KEYS.missedRecords, []))
 export const medicines = ref<Medicine[]>(initialized ? loadLS<Medicine[]>(LS_KEYS.medicines, []) : [...mockMedicines])
 export const medicineUsages = ref<MedicineUsage[]>(initialized ? loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, []) : [...mockMedicineUsages])
+export const stockChanges = ref<StockChangeRecord[]>(initialized ? loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, []) : [...mockStockChanges])
 export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, babies.value[0]?.id || ''))
 
 if (!initialized) {
@@ -95,6 +97,7 @@ if (!initialized) {
   saveLS(LS_KEYS.missedRecords, missedRecords.value)
   saveLS(LS_KEYS.medicines, medicines.value)
   saveLS(LS_KEYS.medicineUsages, medicineUsages.value)
+  saveLS(LS_KEYS.stockChanges, stockChanges.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   localStorage.setItem(LS_KEYS.initialized, 'true')
 }
@@ -116,6 +119,7 @@ try {
     missedRecords.value = loadLS<MissedRecord[]>(LS_KEYS.missedRecords, [])
     medicines.value = loadLS<Medicine[]>(LS_KEYS.medicines, [])
     medicineUsages.value = loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, [])
+    stockChanges.value = loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, [])
     currentBabyId.value = loadLS<string>(LS_KEYS.currentBabyId, '')
   }
 } catch {
@@ -136,6 +140,7 @@ export function persistData() {
   saveLS(LS_KEYS.missedRecords, missedRecords.value)
   saveLS(LS_KEYS.medicines, medicines.value)
   saveLS(LS_KEYS.medicineUsages, medicineUsages.value)
+  saveLS(LS_KEYS.stockChanges, stockChanges.value)
   saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }

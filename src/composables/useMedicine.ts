@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import type { Medicine, MedicineUsage, MedicineCategory, MedicineAnalytics, MedicineSortKey, MedicineSortOrder } from '@/types'
+import type { Medicine, MedicineUsage, MedicineCategory, MedicineAnalytics, MedicineSortKey, MedicineSortOrder, StockChangeRecord } from '@/types'
 import {
-  medicines, medicineUsages, currentBabyId,
+  medicines, medicineUsages, stockChanges, currentBabyId,
   currentUserId, persistData, genId,
   canAddRecord, canDeleteRecord, canEditRecord, getMemberName,
 } from './useSharedStore'
@@ -23,6 +23,12 @@ export function useMedicine() {
   const currentUsages = computed(() =>
     medicineUsages.value
       .filter(u => u.babyId === currentBabyId.value)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  )
+
+  const currentStockChanges = computed(() =>
+    stockChanges.value
+      .filter(c => c.babyId === currentBabyId.value)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   )
 
@@ -162,6 +168,14 @@ export function useMedicine() {
     return currentUsages.value.slice(0, limit)
   }
 
+  function getStockChangesForMedicine(medicineId: string): StockChangeRecord[] {
+    return currentStockChanges.value.filter(c => c.medicineId === medicineId)
+  }
+
+  function getRecentStockChanges(limit: number = 20): StockChangeRecord[] {
+    return currentStockChanges.value.slice(0, limit)
+  }
+
   function searchMedicines(query: string, category?: MedicineCategory): Medicine[] {
     const q = query.toLowerCase().trim()
     return currentMedicines.value.filter(m => {
@@ -229,6 +243,7 @@ export function useMedicine() {
     if (!canDeleteRecord.value) return false
     medicines.value = medicines.value.filter(m => m.id !== id)
     medicineUsages.value = medicineUsages.value.filter(u => u.medicineId !== id)
+    stockChanges.value = stockChanges.value.filter(c => c.medicineId !== id)
     persistData()
     return true
   }
@@ -238,6 +253,10 @@ export function useMedicine() {
     if (!currentBabyId.value) return false
     const medicine = medicines.value.find(m => m.id === medicineId)
     if (!medicine) return false
+
+    const prevQty = medicine.remainingQuantity
+    medicine.remainingQuantity = Math.max(0, medicine.remainingQuantity - quantity)
+    const newQty = medicine.remainingQuantity
 
     medicineUsages.value.unshift({
       id: genId(),
@@ -249,18 +268,56 @@ export function useMedicine() {
       createdBy: currentUserId.value,
     })
 
-    medicine.remainingQuantity = Math.max(0, medicine.remainingQuantity - quantity)
+    stockChanges.value.unshift({
+      id: genId(),
+      medicineId,
+      babyId: currentBabyId.value,
+      changeType: 'usage',
+      quantity: -quantity,
+      previousQuantity: prevQty,
+      newQuantity: newQty,
+      note: note || '使用消耗',
+      createdBy: currentUserId.value,
+      timestamp: new Date().toISOString(),
+    })
+
     persistData()
     return true
   }
 
-  function restockMedicine(medicineId: string, quantity: number) {
+  function restockMedicine(medicineId: string, quantity: number, newExpiryDate?: string, note: string = '') {
     if (!canEditRecord.value) return false
     const medicine = medicines.value.find(m => m.id === medicineId)
     if (!medicine) return false
+
+    const prevQty = medicine.remainingQuantity
+    const prevExpiry = medicine.expiryDate
+
     medicine.remainingQuantity += quantity
     medicine.totalQuantity += quantity
     medicine.purchaseDate = new Date().toISOString()
+
+    if (newExpiryDate) {
+      medicine.expiryDate = newExpiryDate
+    } else if (prevExpiry && new Date(prevExpiry).getTime() < Date.now()) {
+      medicine.expiryDate = undefined
+    }
+
+    stockChanges.value.unshift({
+      id: genId(),
+      medicineId,
+      babyId: currentBabyId.value,
+      changeType: 'restock',
+      quantity,
+      previousQuantity: prevQty,
+      newQuantity: medicine.remainingQuantity,
+      previousExpiryDate: prevExpiry,
+      newExpiryDate: medicine.expiryDate,
+      note: note || (newExpiryDate ? `补货${quantity}${medicine.unit}，更新有效期` : `补货${quantity}${medicine.unit}`),
+      createdBy: currentUserId.value,
+      timestamp: new Date().toISOString(),
+    })
+
     persistData()
     return true
   }
@@ -284,6 +341,7 @@ export function useMedicine() {
   return {
     medicines: currentMedicines,
     usages: currentUsages,
+    stockChanges: currentStockChanges,
     expiredMedicines,
     expiringSoonMedicines,
     lowStockMedicines,
@@ -300,6 +358,8 @@ export function useMedicine() {
     getDaysUntilExpiry,
     getUsageForMedicine,
     getRecentUsages,
+    getStockChangesForMedicine,
+    getRecentStockChanges,
     getMedicineAnalytics,
     searchMedicines,
     sortMedicines,

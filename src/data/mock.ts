@@ -1,4 +1,4 @@
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Medicine, MedicineUsage } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
 
 const now = new Date()
 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -167,4 +167,16 @@ export const mockMedicineUsages: MedicineUsage[] = [
   { id: 'mu12', medicineId: 'med8', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(0, 11, 0), note: '换尿布后涂抹', createdBy: DEFAULT_USER_ID },
   { id: 'mu13', medicineId: 'med9', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-1, 20, 0), note: '洗澡后涂抹', createdBy: DEFAULT_USER_ID },
   { id: 'mu14', medicineId: 'med12', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-5, 20, 0), note: '最后一点用完', createdBy: DEFAULT_USER_ID },
+]
+
+export const mockStockChanges: StockChangeRecord[] = [
+  { id: 'sc1', medicineId: 'med1', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 19, newQuantity: 18, note: '日常补充', createdBy: DEFAULT_USER_ID, timestamp: d(0, 8, 0) },
+  { id: 'sc2', medicineId: 'med1', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 20, newQuantity: 19, note: '日常补充', createdBy: DEFAULT_USER_ID, timestamp: d(-1, 8, 0) },
+  { id: 'sc3', medicineId: 'med1', babyId: DEFAULT_BABY_ID, changeType: 'restock', quantity: 30, previousQuantity: 0, newQuantity: 30, previousExpiryDate: undefined, newExpiryDate: d(180), note: '首次购入30粒', createdBy: DEFAULT_USER_ID, timestamp: d(-15, 10, 0) },
+  { id: 'sc4', medicineId: 'med4', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 4, newQuantity: 3, note: '腹泻调理', createdBy: DEFAULT_USER_ID, timestamp: d(0, 9, 0) },
+  { id: 'sc5', medicineId: 'med4', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 5, newQuantity: 4, note: '腹泻调理', createdBy: DEFAULT_USER_ID, timestamp: d(-1, 9, 0) },
+  { id: 'sc6', medicineId: 'med6', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -5, previousQuantity: 40, newQuantity: 35, note: '日常消耗', createdBy: DEFAULT_USER_ID, timestamp: d(0, 7, 0) },
+  { id: 'sc7', medicineId: 'med6', babyId: DEFAULT_BABY_ID, changeType: 'restock', quantity: 120, previousQuantity: 0, newQuantity: 120, previousExpiryDate: undefined, newExpiryDate: d(730), note: '购入M号纸尿裤一大包', createdBy: DEFAULT_USER_ID, timestamp: d(-20, 14, 0) },
+  { id: 'sc8', medicineId: 'med7', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 3, newQuantity: 2, note: '日常消耗', createdBy: DEFAULT_USER_ID, timestamp: d(0, 10, 0) },
+  { id: 'sc9', medicineId: 'med12', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 1, newQuantity: 0, note: '最后一点用完', createdBy: DEFAULT_USER_ID, timestamp: d(-5, 20, 0) },
 ]
