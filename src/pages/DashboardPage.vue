@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill, Target, CheckCircle, XCircle } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill, Target, CheckCircle, XCircle, Sun } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
 import { useMedicine } from '@/composables/useMedicine'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
-const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin, currentSleepGoal, getSleepGoalWeeklyStats, getSleepGoalDailyAchievement } = useBabyCare()
+const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin, currentSleepGoal, getSleepGoalWeeklyStats, getSleepGoalDailyAchievement, getDaySleepTimes } = useBabyCare()
 const { overdueReminders, pendingReminders, pendingMissed, refreshAll } = useReminder()
 const { alertCount: medicineAlertCount, medicines: currentMedicines, inventorySummary, lowStockMedicines } = useMedicine()
 
@@ -16,6 +16,7 @@ const showBabyPicker = ref(false)
 
 const weeklySleepStats = computed(() => getSleepGoalWeeklyStats(7))
 const todaySleepAchievement = computed(() => getSleepGoalDailyAchievement(new Date()))
+const todaySleepDetail = computed(() => getDaySleepTimes(new Date()))
 
 function formatDeviation(min: number): string {
   if (Math.abs(min) >= 900) return '-'
@@ -238,7 +239,15 @@ function handleSwitchBaby(id: string) {
             </div>
 
             <div v-if="todaySleepAchievement && todaySleepAchievement.bedtime" class="border-t border-cream-200/60 dark:border-warm-500/10 pt-3">
-              <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-2">今日情况</p>
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 flex items-center gap-1">
+                  <Moon :size="10" class="text-peach-400" />
+                  主睡眠
+                </p>
+                <span class="text-[10px] text-warm-200 dark:text-warm-400">
+                  {{ todaySleepAchievement.sleepHours }}h / {{ currentSleepGoal?.targetSleepHours }}h
+                </span>
+              </div>
               <div class="grid grid-cols-3 gap-2">
                 <div class="flex items-center gap-1 justify-center">
                   <component
@@ -247,7 +256,7 @@ function handleSwitchBaby(id: string) {
                     :class="todaySleepAchievement.bedtimeAchieved ? 'text-mint-500' : 'text-warm-300'"
                   />
                   <span class="text-[10px]" :class="todaySleepAchievement.bedtimeAchieved ? 'text-mint-600 dark:text-mint-400 font-semibold' : 'text-warm-300'">
-                    入睡 {{ todaySleepAchievement.bedtime }}
+                    {{ todaySleepAchievement.bedtime }}
                   </span>
                 </div>
                 <div class="flex items-center gap-1 justify-center">
@@ -257,7 +266,7 @@ function handleSwitchBaby(id: string) {
                     :class="todaySleepAchievement.wakeTimeAchieved ? 'text-mint-500' : 'text-warm-300'"
                   />
                   <span class="text-[10px]" :class="todaySleepAchievement.wakeTimeAchieved ? 'text-mint-600 dark:text-mint-400 font-semibold' : 'text-warm-300'">
-                    起床 {{ todaySleepAchievement.wakeTime || '-' }}
+                    {{ todaySleepAchievement.wakeTime || '-' }}
                   </span>
                 </div>
                 <div class="flex items-center gap-1 justify-center">
@@ -270,6 +279,15 @@ function handleSwitchBaby(id: string) {
                     {{ todaySleepAchievement.sleepHours }}h
                   </span>
                 </div>
+              </div>
+              <div v-if="todaySleepDetail.napCount > 0" class="mt-2 flex items-center justify-between bg-amber-50/60 dark:bg-amber-500/10 rounded-lg px-2 py-1 border border-amber-100/60 dark:border-amber-500/20">
+                <span class="text-[9px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                  <Sun :size="9" />
+                  小睡{{ todaySleepDetail.napCount }}次
+                </span>
+                <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold">
+                  {{ (todaySleepDetail.napMinutes / 60).toFixed(1) }}h · 全天{{ (todaySleepDetail.totalSleepMinutes / 60).toFixed(1) }}h
+                </span>
               </div>
             </div>
           </div>

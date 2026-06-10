@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, Lightbulb, Milk, Moon, Droplets,
   ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, AlertCircle,
   ShieldAlert, Info, CheckCircle2, User, ChevronDown, Check, Filter,
-  Target, Award, Clock, AlertOctagon, Sparkles,
+  Target, Award, Clock, AlertOctagon, Sparkles, Sun,
 } from 'lucide-vue-next'
 import { useGrowthAnalysis } from '@/composables/useGrowthAnalysis'
 import { useFamily } from '@/composables/useFamily'
@@ -12,7 +12,29 @@ import { useBabyCare } from '@/composables/useBabyCare'
 
 const { analysis, weekData, maxFeedCount, maxSleepMinutes, maxDiaperCount, anomalyCount, dangerCount, warningCount, setCaregiverFilter, filterCaregiverId, weeklySleepStats, weeklySleepPatternReport } = useGrowthAnalysis()
 const { family } = useFamily()
-const { getMemberName, currentSleepGoal } = useBabyCare()
+const { getMemberName, currentSleepGoal, getDaySleepTimes } = useBabyCare()
+
+const weeklyNapStats = computed(() => {
+  let totalNapCount = 0
+  let totalNapMinutes = 0
+  let validDays = 0
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000)
+    const detail = getDaySleepTimes(d, filterCaregiverId.value || undefined)
+    if (detail.napCount > 0 || detail.mainSleepMinutes > 0) {
+      validDays++
+      totalNapCount += detail.napCount
+      totalNapMinutes += detail.napMinutes
+    }
+  }
+  return {
+    avgNapCount: validDays > 0 ? parseFloat((totalNapCount / validDays).toFixed(1)) : 0,
+    avgNapMinutes: validDays > 0 ? Math.round(totalNapMinutes / validDays) : 0,
+    totalNapCount,
+    totalNapMinutes,
+    validDays,
+  }
+})
 
 const showCaregiverPicker = ref(false)
 
@@ -421,6 +443,9 @@ function getRateBg(rate: number) {
       <section v-if="currentSleepGoal" class="mb-6">
         <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
           <Target :size="14" class="text-peach-400" /> 睡眠作息目标分析
+          <span class="ml-auto text-[10px] font-normal text-warm-300 dark:text-warm-400 bg-cream-100 dark:bg-warm-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Moon :size="9" /> 基于夜间主睡眠段
+          </span>
         </h2>
 
         <div v-if="weeklySleepStats" class="space-y-3">
@@ -428,7 +453,7 @@ function getRateBg(rate: number) {
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <Award :size="18" class="text-peach-400" />
-                <span class="text-sm font-bold text-warm-500 dark:text-cream-100">近7天达成情况</span>
+                <span class="text-sm font-bold text-warm-500 dark:text-cream-100">近7天主睡眠达成</span>
               </div>
               <span class="text-2xl font-extrabold font-display" :class="getRateColor(weeklySleepStats.overallAchievementRate)">
                 {{ weeklySleepStats.overallAchievementRate }}%
@@ -464,7 +489,7 @@ function getRateBg(rate: number) {
 
           <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
             <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
-              <Clock :size="12" /> 平均偏差
+              <Clock :size="12" /> 主睡眠平均偏差
             </h3>
             <div class="grid grid-cols-3 gap-3 text-center">
               <div>
@@ -487,31 +512,60 @@ function getRateBg(rate: number) {
               </div>
             </div>
           </div>
+
+          <div v-if="weeklyNapStats.validDays > 0" class="bg-amber-50/60 dark:bg-amber-500/10 rounded-2xl p-4 border border-amber-100/60 dark:border-amber-500/20">
+            <h3 class="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-1.5">
+              <Sun :size="12" /> 白天小睡统计（7天均值）
+            </h3>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mb-1">平均次数</p>
+                <p class="text-sm font-extrabold text-amber-700 dark:text-amber-400 font-display">
+                  {{ weeklyNapStats.avgNapCount }}次
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mb-1">小睡时长</p>
+                <p class="text-sm font-extrabold text-amber-700 dark:text-amber-400 font-display">
+                  {{ (weeklyNapStats.avgNapMinutes / 60).toFixed(1) }}h
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mb-1">周累计</p>
+                <p class="text-sm font-extrabold text-amber-700 dark:text-amber-400 font-display">
+                  {{ weeklyNapStats.totalNapCount }}次 / {{ (weeklyNapStats.totalNapMinutes / 60).toFixed(1) }}h
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       <section v-if="weeklySleepPatternReport" class="mb-6">
         <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
           <AlertOctagon :size="14" class="text-amber-500" /> 睡眠规律偏差分析
+          <span class="ml-auto text-[10px] font-normal text-warm-300 dark:text-warm-400 bg-cream-100 dark:bg-warm-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Moon :size="9" /> 仅统计主睡眠段
+          </span>
         </h2>
 
         <div class="space-y-3">
           <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
             <div class="grid grid-cols-3 gap-3 text-center mb-3">
               <div>
-                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均入睡</p>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">主睡平均入睡</p>
                 <p class="text-sm font-extrabold text-peach-500 dark:text-peach-400 font-display">
                   {{ weeklySleepPatternReport.avgBedtime || '-' }}
                 </p>
               </div>
               <div>
-                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均起床</p>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">主睡平均起床</p>
                 <p class="text-sm font-extrabold text-mint-500 dark:text-mint-400 font-display">
                   {{ weeklySleepPatternReport.avgWakeTime || '-' }}
                 </p>
               </div>
               <div>
-                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">平均时长</p>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-1">主睡平均时长</p>
                 <p class="text-sm font-extrabold text-warm-500 dark:text-cream-300 font-display">
                   {{ weeklySleepPatternReport.avgSleepHours }}h
                 </p>
@@ -543,7 +597,7 @@ function getRateBg(rate: number) {
           </div>
 
           <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
-            <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3">每日偏差详情</h3>
+            <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3">每日主睡偏差详情</h3>
             <div class="space-y-2">
               <div
                 v-for="dev in weeklySleepPatternReport.deviations"

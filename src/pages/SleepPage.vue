@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Moon, Check, Eye, User, ChevronDown, Target, Settings2, Save, Clock } from 'lucide-vue-next'
+import { ArrowLeft, Moon, Check, Eye, User, ChevronDown, Target, Settings2, Save, Clock, Sun } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 
 const router = useRouter()
-const { addSleep, canAddRecord, needsJoin, getMemberName, settings, currentSleepGoal, setSleepGoal, getSleepGoalDailyAchievement } = useBabyCare()
+const { addSleep, canAddRecord, needsJoin, getMemberName, settings, currentSleepGoal, setSleepGoal, getSleepGoalDailyAchievement, getDaySleepTimes } = useBabyCare()
 const { family, currentUserId } = useFamily()
 
 const quality = ref<'deep' | 'light' | 'fussy'>('deep')
@@ -34,6 +34,7 @@ watch(currentSleepGoal, (g) => {
 }, { immediate: true })
 
 const todayAchievement = computed(() => getSleepGoalDailyAchievement(new Date()))
+const todaySleepDetail = computed(() => getDaySleepTimes(new Date()))
 
 function formatDeviation(min: number): string {
   if (Math.abs(min) >= 900) return '-'
@@ -195,7 +196,15 @@ const sleepHoursPresets = [10, 11, 12, 13, 14]
             </div>
           </div>
           <div v-if="todayAchievement && todayAchievement.bedtime" class="border-t border-cream-200/60 dark:border-warm-500/10 pt-3">
-            <p class="text-[10px] text-warm-300 dark:text-warm-200 mb-2 text-center">今日达成</p>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[10px] text-warm-300 dark:text-warm-200 flex items-center gap-1">
+                <Moon :size="10" class="text-peach-400" />
+                今日主睡眠达成
+              </p>
+              <span v-if="todaySleepDetail.mainSleepMinutes > 0" class="text-[10px] text-warm-200 dark:text-warm-400">
+                {{ (todaySleepDetail.mainSleepMinutes / 60).toFixed(1) }}h / 目标 {{ currentSleepGoal?.targetSleepHours }}h
+              </span>
+            </div>
             <div class="grid grid-cols-3 gap-2 text-center">
               <div class="rounded-xl p-2" :class="todayAchievement.bedtimeAchieved ? 'bg-mint-100 dark:bg-mint-500/20' : 'bg-cream-100 dark:bg-warm-500/10'">
                 <Check v-if="todayAchievement.bedtimeAchieved" :size="14" class="text-mint-500 mx-auto mb-0.5" />
@@ -215,6 +224,22 @@ const sleepHoursPresets = [10, 11, 12, 13, 14]
                 <p class="text-[10px]" :class="todayAchievement.sleepHoursAchieved ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-warm-300'">{{ todayAchievement.sleepHours }}h</p>
                 <p class="text-[9px] text-warm-200 dark:text-warm-400">{{ formatDeviation(todayAchievement.sleepHoursDeviationMin) }}</p>
               </div>
+            </div>
+            <div v-if="todaySleepDetail.napCount > 0" class="mt-3 bg-sun-50 dark:bg-amber-500/10 rounded-xl p-2 border border-sun-100/60 dark:border-amber-500/20">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                  <Sun :size="10" />
+                  白天小睡
+                </span>
+                <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                  {{ todaySleepDetail.napCount }}次 · {{ (todaySleepDetail.napMinutes / 60).toFixed(1) }}h
+                </span>
+              </div>
+            </div>
+            <div class="mt-2 text-center">
+              <span class="text-[10px] text-warm-200 dark:text-warm-400">
+                全天合计 {{ (todaySleepDetail.totalSleepMinutes / 60).toFixed(1) }}h
+              </span>
             </div>
           </div>
           <div v-else class="border-t border-cream-200/60 dark:border-warm-500/10 pt-3 text-center">

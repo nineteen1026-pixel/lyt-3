@@ -263,7 +263,17 @@ export function useBabyCare() {
     }
   }
 
-  function getDaySleepTimes(date: Date, caregiverId?: string): { bedtime: string | null; wakeTime: string | null; totalSleepMinutes: number } {
+  interface DaySleepDetail {
+    mainBedtime: string | null
+    mainWakeTime: string | null
+    mainSleepMinutes: number
+    totalSleepMinutes: number
+    napCount: number
+    napMinutes: number
+    mainSleepId: string | null
+  }
+
+  function getDaySleepTimes(date: Date, caregiverId?: string): DaySleepDetail {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).getTime()
     const dayEnd = dayStart + 86400000
     let daySleeps = currentSleeps.value.filter(r => {
@@ -274,36 +284,123 @@ export function useBabyCare() {
       daySleeps = daySleeps.filter(r => r.caregiverId === caregiverId)
     }
     if (daySleeps.length === 0) {
-      return { bedtime: null, wakeTime: null, totalSleepMinutes: 0 }
+      return {
+        mainBedtime: null,
+        mainWakeTime: null,
+        mainSleepMinutes: 0,
+        totalSleepMinutes: 0,
+        napCount: 0,
+        napMinutes: 0,
+        mainSleepId: null,
+      }
     }
     daySleeps.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    const bedtimeDate = new Date(daySleeps[0].startTime)
-    const bedtime = `${bedtimeDate.getHours().toString().padStart(2, '0')}:${bedtimeDate.getMinutes().toString().padStart(2, '0')}`
-    const lastSleep = daySleeps[daySleeps.length - 1]
-    const wakeTimeDate = new Date(lastSleep.endTime)
-    const wakeTime = `${wakeTimeDate.getHours().toString().padStart(2, '0')}:${wakeTimeDate.getMinutes().toString().padStart(2, '0')}`
-    const totalSleepMinutes = daySleeps.reduce((acc, s) => {
-      const diff = new Date(s.endTime).getTime() - new Date(s.startTime).getTime()
-      return acc + diff / 60000
-    }, 0)
-    return { bedtime, wakeTime, totalSleepMinutes: Math.round(totalSleepMinutes) }
+
+    const goal = currentSleepGoal.value
+    const targetBedtimeMin = goal ? parseTimeToMinutes(goal.targetBedtime) : 21 * 60
+    const targetWakeTimeMin = goal ? parseTimeToMinutes(goal.targetWakeTime) : 7 * 60
+
+    function getSleepStartMin(s: typeof daySleeps[0]) {
+      const d = new Date(s.startTime)
+      return d.getHours() * 60 + d.getMinutes()
+    }
+    function getSleepEndMin(s: typeof daySleeps[0]) {
+      const d = new Date(s.endTime)
+      return d.getHours() * 60 + d.getMinutes()
+    }
+    function getSleepDurationMin(s: typeof daySleeps[0]) {
+      return (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / 60000
+    }
+    function calcTimeDiff(a: number, b: number) {
+      let diff = a - b
+      if (diff > 720) diff -= 1440
+      if (diff < -720) diff += 1440
+      return diff
+    }
+
+    let mainSleep = null as null | typeof daySleeps[0]
+    let bestScore = -Infinity
+
+    for (const s of daySleeps) {
+      const startMin = getSleepStartMin(s)
+      const endMin = getSleepEndMin(s)
+      const duration = getSleepDurationMin(s)
+
+      const bedtimeDist = Math.abs(calcTimeDiff(startMin, targetBedtimeMin))
+      const wakeTimeDist = Math.abs(calcTimeDiff(endMin, targetWakeTimeMin))
+
+      const overlapTargetWindowScore = Math.max(0, 180 - Math.min(bedtimeDist, wakeTimeDist))
+      const durationScore = Math.min(duration, 360) / 6
+      const score = overlapTargetWindowScore * 2 + durationScore
+
+      if (score > bestScore) {
+        bestScore = score
+        mainSleep = s
+      }
+    }
+
+    let mainBedtime: string | null = null
+    let mainWakeTime: string | null = null
+    let mainSleepMinutes = 0
+    let napMinutes = 0
+    let napCount = 0
+    let mainSleepId: string | null = null
+
+    if (mainSleep) {
+      const bedtimeDate = new Date(mainSleep.startTime)
+      mainBedtime = `${bedtimeDate.getHours().toString().padStart(2, '0')}:${bedtimeDate.getMinutes().toString().padStart(2, '0')}`
+      const wakeTimeDate = new Date(mainSleep.endTime)
+      mainWakeTime = `${wakeTimeDate.getHours().toString().padStart(2, '0')}:${wakeTimeDate.getMinutes().toString().padStart(2, '0')}`
+      mainSleepMinutes = Math.round(getSleepDurationMin(mainSleep))
+      mainSleepId = mainSleep.id
+
+      for (const s of daySleeps) {
+        if (s.id !== mainSleep.id) {
+          napCount++
+          napMinutes += Math.round(getSleepDurationMin(s))
+        }
+      }
+    } else {
+      const allDurations = daySleeps.map(getSleepDurationMin)
+      const total = Math.round(allDurations.reduce((a, b) => a + b, 0))
+      mainSleepMinutes = total
+      const first = daySleeps[0]
+      const last = daySleeps[daySleeps.length - 1]
+      const bd = new Date(first.startTime)
+      mainBedtime = `${bd.getHours().toString().padStart(2, '0')}:${bd.getMinutes().toString().padStart(2, '0')}`
+      const wd = new Date(last.endTime)
+      mainWakeTime = `${wd.getHours().toString().padStart(2, '0')}:${wd.getMinutes().toString().padStart(2, '0')}`
+    }
+
+    const totalSleepMinutes = mainSleepMinutes + napMinutes
+
+    return {
+      mainBedtime,
+      mainWakeTime,
+      mainSleepMinutes,
+      totalSleepMinutes,
+      napCount,
+      napMinutes,
+      mainSleepId,
+    }
   }
 
   function getSleepGoalDailyAchievement(date: Date, caregiverId?: string): SleepGoalDailyAchievement | null {
     const goal = currentSleepGoal.value
     if (!goal) return null
-    const { bedtime, wakeTime, totalSleepMinutes } = getDaySleepTimes(date, caregiverId)
+    const sleepDetail = getDaySleepTimes(date, caregiverId)
+    const { mainBedtime: bedtime, mainWakeTime: wakeTime, mainSleepMinutes } = sleepDetail
     const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
     const bedtimeResult = getTimeDeviation(bedtime, goal.targetBedtime, goal.bedtimeToleranceMin)
     const wakeTimeResult = getTimeDeviation(wakeTime, goal.targetWakeTime, goal.wakeTimeToleranceMin)
     const targetSleepMin = goal.targetSleepHours * 60
-    const sleepHoursDeviation = totalSleepMinutes - targetSleepMin
+    const sleepHoursDeviation = mainSleepMinutes - targetSleepMin
     const sleepHoursAchieved = Math.abs(sleepHoursDeviation) <= 60
     return {
       date: dateStr,
       bedtime,
       wakeTime,
-      sleepHours: parseFloat((totalSleepMinutes / 60).toFixed(1)),
+      sleepHours: parseFloat((mainSleepMinutes / 60).toFixed(1)),
       bedtimeAchieved: bedtimeResult.achieved,
       wakeTimeAchieved: wakeTimeResult.achieved,
       sleepHoursAchieved,
