@@ -11,12 +11,87 @@ export interface FeedingRecord {
   type: 'feeding'
   babyId: string
   timestamp: string
-  feedingType: 'breast' | 'formula'
+  feedingType: 'breast' | 'formula' | 'mixed'
   duration: number
   amount: number
+  breastSide?: 'left' | 'right' | 'both' | 'alternate'
+  leftDuration?: number
+  rightDuration?: number
+  formulaPowder?: number
+  formulaWater?: number
   note: string
   createdBy: string
   caregiverId: string
+}
+
+export interface FeedingDailyStats {
+  date: string
+  totalFeedings: number
+  breastCount: number
+  formulaCount: number
+  mixedCount: number
+  totalAmount: number
+  totalDuration: number
+  leftDuration: number
+  rightDuration: number
+  avgIntervalMin: number
+  avgDurationMin: number
+  avgAmount: number
+  feedingsByHour: number[]
+}
+
+export interface FeedingTrendPoint {
+  date: string
+  value: number
+  label: string
+}
+
+export interface SideBalance {
+  leftCount: number
+  rightCount: number
+  bothCount: number
+  leftDuration: number
+  rightDuration: number
+  leftPercent: number
+  rightPercent: number
+  imbalanceWarning: boolean
+  suggestion: string
+}
+
+export interface FeedingReminderSettings {
+  enabled: boolean
+  intervalMinutes: number
+  customMessage?: string
+  soundEnabled?: boolean
+  vibrateEnabled?: boolean
+}
+
+export interface FeedingAnalytics {
+  todayStats: FeedingDailyStats
+  weekStats: FeedingDailyStats[]
+  last7DaysTrend: { date: string; count: number; amount: number }[]
+  sideBalance: SideBalance
+  avgIntervalMin: number
+  avgDurationMin: number
+  avgAmountPerFeeding: number
+  dailyDistribution: { hour: number; count: number }[]
+  formulaUsageTotal: number
+  breastfeedingTotalMin: number
+  nextSuggestedFeeding: string | null
+  recommendations: string[]
+}
+
+export const FEEDING_TYPE_LABELS: Record<'breast' | 'formula' | 'mixed', string> = {
+  breast: '母乳',
+  formula: '配方奶',
+  mixed: '混合喂养',
+}
+
+export const BREAST_SIDE_LABELS: Record<'left' | 'right' | 'both' | 'alternate', string> = {
+  left: '左侧',
+  right: '右侧',
+  both: '双侧',
+  alternate: '交替',
 }
 
 export interface SleepRecord {
@@ -125,6 +200,7 @@ export interface AppSettings {
   darkMode: boolean
   notifications: boolean
   defaultCaregiverId?: string
+  feedingReminder?: FeedingReminderSettings
 }
 
 export interface DaySummary {

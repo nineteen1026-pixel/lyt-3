@@ -66,7 +66,15 @@ function getColor(record: ActivityRecord) {
 function getSummary(record: ActivityRecord) {
   if (record.type === 'feeding') {
     const f = record as FeedingRecord
-    return f.feedingType === 'breast' ? `母乳 ${f.duration}min` : `配方奶 ${f.amount}ml`
+    const typeLabel = f.feedingType === 'breast' ? '母乳' : f.feedingType === 'formula' ? '配方奶' : '混合'
+    const sideLabel = f.breastSide ? ` · ${f.breastSide === 'left' ? '左' : f.breastSide === 'right' ? '右' : f.breastSide === 'both' ? '双' : '交替'}` : ''
+    if (f.feedingType === 'breast') {
+      return `${typeLabel}${sideLabel} ${f.duration}min`
+    } else if (f.feedingType === 'formula') {
+      return `${typeLabel} ${f.amount}ml`
+    } else {
+      return `${typeLabel}${sideLabel} ${f.duration}min · ${f.amount}ml`
+    }
   }
   if (record.type === 'sleep') {
     const s = record as SleepRecord

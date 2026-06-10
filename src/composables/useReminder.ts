@@ -29,6 +29,10 @@ export function useReminder() {
     return list[0]
   })
 
+  const feedingIntervalMin = computed(() => {
+    return settings.value.feedingReminder?.intervalMinutes || pattern.value.avgFeedingIntervalMin || 180
+  })
+
   const lastDiaper = computed<DiaperRecord | undefined>(() => {
     const list = diapers.value
       .filter(r => r.babyId === currentBabyId.value)
@@ -92,8 +96,11 @@ export function useReminder() {
     }
     const avgDailyDiapers = diaperDaySet.size > 0 ? babyDiapers.length / diaperDaySet.size : 5
 
+    const customInterval = settings.value.feedingReminder?.enabled
+      ? (settings.value.feedingReminder.intervalMinutes || avgFeedingIntervalMin)
+      : avgFeedingIntervalMin
     const nextFeedingTime = lastFeeding.value
-      ? new Date(new Date(lastFeeding.value.timestamp).getTime() + avgFeedingIntervalMin * 60000).toISOString()
+      ? new Date(new Date(lastFeeding.value.timestamp).getTime() + customInterval * 60000).toISOString()
       : null
 
     const nextDiaperTime = lastDiaper.value
@@ -420,17 +427,20 @@ export function useReminder() {
     }
   }
 
-  function fillMissedFeeding(missedId: string, feedingType: 'breast' | 'formula', duration: number, amount: number) {
+  function fillMissedFeeding(missedId: string, feedingType: 'breast' | 'formula' | 'mixed', duration: number, amount: number, breastSide?: 'left' | 'right' | 'both' | 'alternate') {
     const missed = missedRecords.value.find(r => r.id === missedId)
     if (!missed || missed.type !== 'feeding') return false
+    const isBreast = feedingType === 'breast' || feedingType === 'mixed'
+    const isFormula = feedingType === 'formula' || feedingType === 'mixed'
     feedings.value.unshift({
       id: genId(),
       type: 'feeding',
       babyId: currentBabyId.value,
       timestamp: missed.suggestedTime,
       feedingType,
-      duration: feedingType === 'breast' ? duration : 0,
-      amount: feedingType === 'formula' ? amount : 0,
+      duration: isBreast ? duration : 0,
+      amount: isFormula ? amount : 0,
+      breastSide: isBreast ? (breastSide || 'alternate') : undefined,
       note: '漏记补录',
       createdBy: 'system',
       caregiverId: currentUserId.value,
@@ -546,6 +556,7 @@ export function useReminder() {
     timeSinceLastDiaper,
     timeSinceLastSleepEnd,
     notifPermissionGranted,
+    feedingIntervalMin,
     generateReminders,
     detectMissedRecords,
     dismissReminder,
