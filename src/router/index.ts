@@ -9,6 +9,7 @@ import SettingsPage from '@/pages/SettingsPage.vue'
 import FamilyPage from '@/pages/FamilyPage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
 import ReminderCenterPage from '@/pages/ReminderCenterPage.vue'
+import MonthlyReportPage from '@/pages/MonthlyReportPage.vue'
 
 const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
@@ -17,6 +18,7 @@ const routes = [
   { path: '/diaper', name: 'diaper', component: DiaperPage },
   { path: '/history', name: 'history', component: HistoryPage },
   { path: '/weekly', name: 'weekly', component: WeeklyPage },
+  { path: '/monthly-report', name: 'monthly-report', component: MonthlyReportPage },
   { path: '/health', name: 'health', component: HealthPage },
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },

@@ -127,6 +127,65 @@ export interface DaySummary {
   diaperCount: number
 }
 
+export interface MonthlyDayData {
+  date: string
+  day: number
+  feedCount: number
+  totalAmount: number
+  sleepMinutes: number
+  diaperCount: number
+  diaperWet: number
+  diaperDirty: number
+  diaperMixed: number
+  breastCount: number
+  formulaCount: number
+  formulaAmount: number
+  deepSleepCount: number
+  lightSleepCount: number
+  fussySleepCount: number
+}
+
+export type AnomalyLevel = 'warning' | 'danger' | 'info'
+
+export interface AnomalyItem {
+  id: string
+  category: 'feeding' | 'sleep' | 'diaper'
+  level: AnomalyLevel
+  title: string
+  description: string
+  advice: string
+}
+
+export interface MonthlyTrend {
+  label: string
+  weekIndex: number
+  avgFeedCount: number
+  avgSleepMinutes: number
+  avgDiaperCount: number
+  avgFormulaAmount: number
+}
+
+export interface MonthlyReport {
+  year: number
+  month: number
+  days: MonthlyDayData[]
+  trends: MonthlyTrend[]
+  anomalies: AnomalyItem[]
+  advices: string[]
+  summary: {
+    totalFeedCount: number
+    avgDailyFeedCount: number
+    totalFormulaAmount: number
+    avgDailyFormulaAmount: number
+    totalSleepMinutes: number
+    avgDailySleepMinutes: number
+    totalDiaperCount: number
+    avgDailyDiaperCount: number
+    deepSleepRate: number
+    breastVsFormula: { breast: number; formula: number }
+  }
+}
+
 export type FamilyRole = 'owner' | 'admin' | 'member' | 'viewer'
 
 export interface FamilyMember {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
@@ -215,6 +215,22 @@ function handleSwitchBaby(id: string) {
         <div class="flex-1 text-left">
           <p class="text-sm font-bold text-warm-500 dark:text-cream-100">成长健康档案</p>
           <p class="text-[10px] text-warm-300 dark:text-warm-200">身高体重 · 疫苗计划 · 体检记录 · 趋势曲线</p>
+        </div>
+        <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+      </button>
+    </section>
+
+    <section class="mb-6">
+      <button
+        @click="router.push('/monthly-report')"
+        class="w-full flex items-center gap-3 bg-gradient-to-r from-cream-100 to-peach-50 dark:from-cream-300/10 dark:to-peach-500/10 rounded-2xl px-4 py-3 shadow-sm"
+      >
+        <div class="w-9 h-9 rounded-xl bg-cream-200 dark:bg-cream-300/20 flex items-center justify-center">
+          <CalendarDays :size="18" class="text-warm-400" />
+        </div>
+        <div class="flex-1 text-left">
+          <p class="text-sm font-bold text-warm-500 dark:text-cream-100">月报分析</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">喂养睡眠排便趋势 · 异常识别 · 育儿建议</p>
         </div>
         <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
       </button>
