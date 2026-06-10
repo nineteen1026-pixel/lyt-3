@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
-import { defaultBaby, defaultSettings, mockFeedings, mockSleeps, mockDiapers, mockGrowths, mockVaccines, mockCheckups, mockMedicines, mockMedicineUsages, mockStockChanges } from '@/data/mock'
+import { defaultSettings } from '@/data/mock'
 
 const LS_KEYS = {
   family: 'baby-care:family',
@@ -66,39 +66,25 @@ if (!_uid) saveSS(SS_KEYS.userId, currentUserId.value)
 export const currentUserName = ref(loadSS<string>(SS_KEYS.userName, ''))
 
 const initialized = localStorage.getItem(LS_KEYS.initialized)
-const defaultBabyWithId: Baby = { ...defaultBaby, id: defaultBaby.id || genId() }
+const onboardingDone = localStorage.getItem('baby-care:onboarding-done')
 
 export const family = ref<Family | null>(loadLS<Family | null>(LS_KEYS.family, null))
-export const babies = ref<Baby[]>(loadLS<Baby[]>(LS_KEYS.babies, [defaultBabyWithId]))
-export const feedings = ref<FeedingRecord[]>(initialized ? loadLS<FeedingRecord[]>(LS_KEYS.feedings, []) : [...mockFeedings])
-export const sleeps = ref<SleepRecord[]>(initialized ? loadLS<SleepRecord[]>(LS_KEYS.sleeps, []) : [...mockSleeps])
-export const diapers = ref<DiaperRecord[]>(initialized ? loadLS<DiaperRecord[]>(LS_KEYS.diapers, []) : [...mockDiapers])
-export const growths = ref<GrowthRecord[]>(initialized ? loadLS<GrowthRecord[]>(LS_KEYS.growths, []) : [...mockGrowths])
-export const vaccines = ref<VaccineRecord[]>(initialized ? loadLS<VaccineRecord[]>(LS_KEYS.vaccines, []) : [...mockVaccines])
-export const checkups = ref<CheckupRecord[]>(initialized ? loadLS<CheckupRecord[]>(LS_KEYS.checkups, []) : [...mockCheckups])
+export const babies = ref<Baby[]>(loadLS<Baby[]>(LS_KEYS.babies, []))
+export const feedings = ref<FeedingRecord[]>(loadLS<FeedingRecord[]>(LS_KEYS.feedings, []))
+export const sleeps = ref<SleepRecord[]>(loadLS<SleepRecord[]>(LS_KEYS.sleeps, []))
+export const diapers = ref<DiaperRecord[]>(loadLS<DiaperRecord[]>(LS_KEYS.diapers, []))
+export const growths = ref<GrowthRecord[]>(loadLS<GrowthRecord[]>(LS_KEYS.growths, []))
+export const vaccines = ref<VaccineRecord[]>(loadLS<VaccineRecord[]>(LS_KEYS.vaccines, []))
+export const checkups = ref<CheckupRecord[]>(loadLS<CheckupRecord[]>(LS_KEYS.checkups, []))
 export const settings = ref<AppSettings>(loadLS<AppSettings>(LS_KEYS.settings, defaultSettings))
 export const reminders = ref<ReminderItem[]>(loadLS<ReminderItem[]>(LS_KEYS.reminders, []))
 export const missedRecords = ref<MissedRecord[]>(loadLS<MissedRecord[]>(LS_KEYS.missedRecords, []))
-export const medicines = ref<Medicine[]>(initialized ? loadLS<Medicine[]>(LS_KEYS.medicines, []) : [...mockMedicines])
-export const medicineUsages = ref<MedicineUsage[]>(initialized ? loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, []) : [...mockMedicineUsages])
-export const stockChanges = ref<StockChangeRecord[]>(initialized ? loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, []) : [...mockStockChanges])
-export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, babies.value[0]?.id || ''))
+export const medicines = ref<Medicine[]>(loadLS<Medicine[]>(LS_KEYS.medicines, []))
+export const medicineUsages = ref<MedicineUsage[]>(loadLS<MedicineUsage[]>(LS_KEYS.medicineUsages, []))
+export const stockChanges = ref<StockChangeRecord[]>(loadLS<StockChangeRecord[]>(LS_KEYS.stockChanges, []))
+export const currentBabyId = ref<string>(loadLS<string>(LS_KEYS.currentBabyId, ''))
 
 if (!initialized) {
-  saveLS(LS_KEYS.babies, babies.value)
-  saveLS(LS_KEYS.feedings, feedings.value)
-  saveLS(LS_KEYS.sleeps, sleeps.value)
-  saveLS(LS_KEYS.diapers, diapers.value)
-  saveLS(LS_KEYS.growths, growths.value)
-  saveLS(LS_KEYS.vaccines, vaccines.value)
-  saveLS(LS_KEYS.checkups, checkups.value)
-  saveLS(LS_KEYS.settings, settings.value)
-  saveLS(LS_KEYS.reminders, reminders.value)
-  saveLS(LS_KEYS.missedRecords, missedRecords.value)
-  saveLS(LS_KEYS.medicines, medicines.value)
-  saveLS(LS_KEYS.medicineUsages, medicineUsages.value)
-  saveLS(LS_KEYS.stockChanges, stockChanges.value)
-  saveLS(LS_KEYS.currentBabyId, currentBabyId.value)
   localStorage.setItem(LS_KEYS.initialized, 'true')
 }
 

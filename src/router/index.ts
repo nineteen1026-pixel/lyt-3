@@ -12,6 +12,7 @@ import ReminderCenterPage from '@/pages/ReminderCenterPage.vue'
 import MonthlyReportPage from '@/pages/MonthlyReportPage.vue'
 import KnowledgePage from '@/pages/KnowledgePage.vue'
 import MedicinePage from '@/pages/MedicinePage.vue'
+import OnboardingPage from '@/pages/OnboardingPage.vue'
 
 const routes = [
   { path: '/', name: 'dashboard', component: DashboardPage },
@@ -27,11 +28,21 @@ const routes = [
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
   { path: '/family', name: 'family', component: FamilyPage },
+  { path: '/onboarding', name: 'onboarding', component: OnboardingPage },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+const ONBOARDING_KEY = 'baby-care:onboarding-done'
+
+router.beforeEach((to) => {
+  if (to.path === '/onboarding') return true
+  const done = localStorage.getItem(ONBOARDING_KEY)
+  if (!done) return { path: '/onboarding' }
+  return true
 })
 
 export default router
