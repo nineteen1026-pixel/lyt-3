@@ -127,6 +127,54 @@ export interface DaySummary {
   diaperCount: number
 }
 
+export interface DailyComparison {
+  category: 'feeding' | 'sleep' | 'diaper'
+  todayValue: number
+  avgValue: number
+  diff: number
+  diffPercent: number
+  label: string
+  unit: string
+}
+
+export type TrendDirection = 'up' | 'down' | 'stable'
+
+export interface ConsecutiveTrend {
+  category: 'feeding' | 'sleep' | 'diaper'
+  direction: TrendDirection
+  days: number
+  label: string
+  description: string
+}
+
+export type AnomalyLevel = 'warning' | 'danger' | 'info'
+
+export interface AnomalyDay {
+  date: string
+  category: 'feeding' | 'sleep' | 'diaper'
+  level: AnomalyLevel
+  value: number
+  avgValue: number
+  deviation: number
+  description: string
+}
+
+export interface GrowthAdvice {
+  id: string
+  category: 'feeding' | 'sleep' | 'diaper' | 'general'
+  level: 'good' | 'info' | 'warning'
+  title: string
+  description: string
+}
+
+export interface GrowthAnalysis {
+  comparisons: DailyComparison[]
+  trends: ConsecutiveTrend[]
+  anomalyDays: AnomalyDay[]
+  advices: GrowthAdvice[]
+  weekData: { date: string; summary: DaySummary }[]
+}
+
 export interface MonthlyDayData {
   date: string
   day: number
@@ -144,8 +192,6 @@ export interface MonthlyDayData {
   lightSleepCount: number
   fussySleepCount: number
 }
-
-export type AnomalyLevel = 'warning' | 'danger' | 'info'
 
 export interface AnomalyItem {
   id: string
