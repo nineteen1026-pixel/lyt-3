@@ -1,4 +1,4 @@
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Medicine, MedicineUsage } from '@/types'
 
 const now = new Date()
 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -135,4 +135,36 @@ export const mockCheckups: CheckupRecord[] = [
   { id: 'c2', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-150, 9, 0), hospital: '社区卫生中心', doctor: '李医生', items: ['体格检查', '黄疸检测'], result: '黄疸已退，发育正常', note: '满月体检', createdBy: DEFAULT_USER_ID },
   { id: 'c3', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-90, 9, 0), hospital: '市妇幼保健院', doctor: '王医生', items: ['体格检查', '髋关节B超', '视力筛查'], result: '髋关节正常，发育良好', note: '3个月体检', createdBy: DEFAULT_USER_ID },
   { id: 'c4', type: 'checkup', babyId: DEFAULT_BABY_ID, timestamp: d(-30, 9, 0), hospital: '市妇幼保健院', doctor: '张医生', items: ['体格检查', '血常规', '微量元素'], result: '轻微缺铁，建议补充', note: '6个月体检', createdBy: DEFAULT_USER_ID },
+]
+
+export const mockMedicines: Medicine[] = [
+  { id: 'med1', babyId: DEFAULT_BABY_ID, name: '伊可新维生素AD滴剂', category: 'medication', unit: '粒', totalQuantity: 30, remainingQuantity: 18, expiryDate: d(180), lowStockThreshold: 5, purchaseDate: d(-15), note: '每天一粒', createdBy: DEFAULT_USER_ID },
+  { id: 'med2', babyId: DEFAULT_BABY_ID, name: '美林布洛芬混悬液', category: 'medication', unit: '瓶', totalQuantity: 1, remainingQuantity: 1, expiryDate: d(365), lowStockThreshold: 1, purchaseDate: d(-30), note: '发烧备用', createdBy: DEFAULT_USER_ID },
+  { id: 'med3', babyId: DEFAULT_BABY_ID, name: '泰诺林对乙酰氨基酚滴剂', category: 'medication', unit: '瓶', totalQuantity: 1, remainingQuantity: 1, expiryDate: d(300), lowStockThreshold: 1, purchaseDate: d(-20), note: '发烧备用', createdBy: DEFAULT_USER_ID },
+  { id: 'med4', babyId: DEFAULT_BABY_ID, name: '妈咪爱益生菌', category: 'medication', unit: '袋', totalQuantity: 20, remainingQuantity: 3, expiryDate: d(90), lowStockThreshold: 5, purchaseDate: d(-25), note: '肠胃调理', createdBy: DEFAULT_USER_ID },
+  { id: 'med5', babyId: DEFAULT_BABY_ID, name: '尤卓尔氧化锌软膏', category: 'medication', unit: '支', totalQuantity: 1, remainingQuantity: 1, expiryDate: d(200), lowStockThreshold: 1, purchaseDate: d(-10), note: '红屁股涂抹', createdBy: DEFAULT_USER_ID },
+  { id: 'med6', babyId: DEFAULT_BABY_ID, name: '纸尿裤（M号）', category: 'nursing_supply', unit: '片', totalQuantity: 120, remainingQuantity: 35, expiryDate: d(730), lowStockThreshold: 20, purchaseDate: d(-20), note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'med7', babyId: DEFAULT_BABY_ID, name: '婴儿湿巾', category: 'nursing_supply', unit: '包', totalQuantity: 6, remainingQuantity: 2, expiryDate: d(365), lowStockThreshold: 2, purchaseDate: d(-30), note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'med8', babyId: DEFAULT_BABY_ID, name: '护臀霜', category: 'nursing_supply', unit: '支', totalQuantity: 1, remainingQuantity: 1, expiryDate: d(150), lowStockThreshold: 1, purchaseDate: d(-15), note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'med9', babyId: DEFAULT_BABY_ID, name: '婴儿润肤乳', category: 'nursing_supply', unit: '瓶', totalQuantity: 1, remainingQuantity: 1, expiryDate: d(120), lowStockThreshold: 1, purchaseDate: d(-40), note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'med10', babyId: DEFAULT_BABY_ID, name: '退热贴', category: 'nursing_supply', unit: '片', totalQuantity: 10, remainingQuantity: 8, expiryDate: d(180), lowStockThreshold: 3, purchaseDate: d(-10), note: '', createdBy: DEFAULT_USER_ID },
+  { id: 'med11', babyId: DEFAULT_BABY_ID, name: '生理盐水滴鼻剂', category: 'medication', unit: '支', totalQuantity: 2, remainingQuantity: 2, expiryDate: d(-5), lowStockThreshold: 1, purchaseDate: d(-60), note: '已过期需更换', createdBy: DEFAULT_USER_ID },
+  { id: 'med12', babyId: DEFAULT_BABY_ID, name: '婴儿抚触油', category: 'nursing_supply', unit: '瓶', totalQuantity: 1, remainingQuantity: 0, lowStockThreshold: 1, purchaseDate: d(-50), note: '已用完需补货', expiryDate: d(60), createdBy: DEFAULT_USER_ID },
+]
+
+export const mockMedicineUsages: MedicineUsage[] = [
+  { id: 'mu1', medicineId: 'med1', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(0, 8, 0), note: '日常补充', createdBy: DEFAULT_USER_ID },
+  { id: 'mu2', medicineId: 'med1', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-1, 8, 0), note: '日常补充', createdBy: DEFAULT_USER_ID },
+  { id: 'mu3', medicineId: 'med1', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-2, 8, 0), note: '日常补充', createdBy: DEFAULT_USER_ID },
+  { id: 'mu4', medicineId: 'med4', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(0, 9, 0), note: '腹泻调理', createdBy: DEFAULT_USER_ID },
+  { id: 'mu5', medicineId: 'med4', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-1, 9, 0), note: '腹泻调理', createdBy: DEFAULT_USER_ID },
+  { id: 'mu6', medicineId: 'med4', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-2, 9, 0), note: '腹泻调理', createdBy: DEFAULT_USER_ID },
+  { id: 'mu7', medicineId: 'med6', babyId: DEFAULT_BABY_ID, quantity: 5, timestamp: d(0, 7, 0), note: '日常消耗', createdBy: DEFAULT_USER_ID },
+  { id: 'mu8', medicineId: 'med6', babyId: DEFAULT_BABY_ID, quantity: 5, timestamp: d(-1, 7, 0), note: '日常消耗', createdBy: DEFAULT_USER_ID },
+  { id: 'mu9', medicineId: 'med6', babyId: DEFAULT_BABY_ID, quantity: 5, timestamp: d(-2, 7, 0), note: '日常消耗', createdBy: DEFAULT_USER_ID },
+  { id: 'mu10', medicineId: 'med7', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(0, 10, 0), note: '日常消耗', createdBy: DEFAULT_USER_ID },
+  { id: 'mu11', medicineId: 'med7', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-2, 10, 0), note: '日常消耗', createdBy: DEFAULT_USER_ID },
+  { id: 'mu12', medicineId: 'med8', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(0, 11, 0), note: '换尿布后涂抹', createdBy: DEFAULT_USER_ID },
+  { id: 'mu13', medicineId: 'med9', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-1, 20, 0), note: '洗澡后涂抹', createdBy: DEFAULT_USER_ID },
+  { id: 'mu14', medicineId: 'med12', babyId: DEFAULT_BABY_ID, quantity: 1, timestamp: d(-5, 20, 0), note: '最后一点用完', createdBy: DEFAULT_USER_ID },
 ]

@@ -273,6 +273,50 @@ export interface KnowledgeEntry {
   guides: CareGuide[]
 }
 
+export type MedicineCategory = 'medication' | 'nursing_supply'
+
+export interface Medicine {
+  id: string
+  babyId: string
+  name: string
+  category: MedicineCategory
+  unit: string
+  totalQuantity: number
+  remainingQuantity: number
+  expiryDate?: string
+  lowStockThreshold: number
+  purchaseDate: string
+  note: string
+  createdBy: string
+}
+
+export interface MedicineUsage {
+  id: string
+  medicineId: string
+  babyId: string
+  quantity: number
+  timestamp: string
+  note: string
+  createdBy: string
+}
+
+export const MEDICINE_CATEGORY_LABELS: Record<MedicineCategory, string> = {
+  medication: '药品',
+  nursing_supply: '护理用品',
+}
+
+export interface MedicineAnalytics {
+  avgDailyUsage: number
+  estimatedDaysLeft: number | null
+  estimatedDepletionDate: string | null
+  usageLast7Days: number
+  usageLast30Days: number
+  restockSuggestedQuantity: number | null
+}
+
+export type MedicineSortKey = 'name' | 'stock' | 'expiry' | 'usage'
+export type MedicineSortOrder = 'asc' | 'desc'
+
 export const KNOWLEDGE_CATEGORY_LABELS: Record<KnowledgeCategory, string> = {
   feeding: '喂养指南',
   sleep: '睡眠指南',

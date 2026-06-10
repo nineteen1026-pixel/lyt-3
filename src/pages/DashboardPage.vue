@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
+import { useMedicine } from '@/composables/useMedicine'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
 const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin } = useBabyCare()
 const { overdueReminders, pendingReminders, pendingMissed, refreshAll } = useReminder()
+const { alertCount: medicineAlertCount, medicines: currentMedicines, inventorySummary, lowStockMedicines } = useMedicine()
 
 const showBabyPicker = ref(false)
 
@@ -250,6 +252,41 @@ function handleSwitchBaby(id: string) {
         </div>
         <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
       </button>
+    </section>
+
+    <section class="mb-6">
+      <button
+        @click="router.push('/medicine')"
+        class="w-full flex items-center gap-3 bg-gradient-to-r from-peach-50 to-cream-100 dark:from-peach-500/10 dark:to-cream-300/10 rounded-2xl px-4 py-3 shadow-sm"
+      >
+        <div class="w-9 h-9 rounded-xl bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center relative">
+          <Pill :size="18" class="text-peach-400" />
+          <div v-if="medicineAlertCount > 0"
+            class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
+            {{ medicineAlertCount }}
+          </div>
+        </div>
+        <div class="flex-1 text-left">
+          <p class="text-sm font-bold text-warm-500 dark:text-cream-100">药品与护理用品</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">
+            <template v-if="medicineAlertCount > 0">{{ medicineAlertCount }}项预警 · </template>
+            库存{{ inventorySummary.total }}种(药品{{ inventorySummary.medicationCount }}/护理{{ inventorySummary.supplyCount }}) · 有效期 · 补货提醒
+          </p>
+        </div>
+        <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+      </button>
+      <div v-if="lowStockMedicines.length > 0" class="mt-2 flex flex-wrap gap-1.5">
+        <span
+          v-for="med in lowStockMedicines.slice(0, 3)"
+          :key="med.id"
+          class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-500 border border-amber-200 dark:border-amber-500/20"
+        >
+          {{ med.name }} 仅剩{{ med.remainingQuantity }}{{ med.unit }}
+        </span>
+        <span v-if="lowStockMedicines.length > 3" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cream-100 dark:bg-warm-500/10 text-warm-300 dark:text-warm-200">
+          +{{ lowStockMedicines.length - 3 }}
+        </span>
+      </div>
     </section>
 
     <section>
