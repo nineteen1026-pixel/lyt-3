@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Settings, Baby, Moon, Bell, Check, Users, ChevronRight, Trash2, User, ChevronDown, Shield } from 'lucide-vue-next'
+import { Settings, Baby, Moon, Bell, Check, Users, ChevronRight, Trash2, User, ChevronDown, Shield, Lock } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 import { useTheme } from '@/composables/useTheme'
@@ -294,7 +294,22 @@ function handleDeleteBaby(babyId: string) {
       <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
         <Shield :size="14" /> 数据管理
       </h2>
-      <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm">
+      <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl shadow-sm divide-y divide-cream-100 dark:divide-warm-500/10">
+        <button
+          @click="router.push('/privacy-center')"
+          class="w-full flex items-center justify-between px-4 py-3.5 text-left"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-100 dark:bg-indigo-500/20">
+              <Lock :size="18" class="text-indigo-400" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">数据隐私中心</p>
+              <p class="text-[11px] text-warm-300 dark:text-warm-200">密码锁 · 字段隐藏 · 授权分享 · 清除记录</p>
+            </div>
+          </div>
+          <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+        </button>
         <button
           @click="router.push('/data-recovery')"
           class="w-full flex items-center justify-between px-4 py-3.5 text-left"

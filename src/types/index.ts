@@ -824,6 +824,79 @@ export interface TemperatureWeeklyTrend {
   minTemperatures: number[]
 }
 
+export type SensitiveFieldType = 'babyName' | 'birthDate' | 'weight' | 'height' | 'hospital' | 'doctor' | 'diagnosis' | 'prescription' | 'temperature' | 'photoUrl' | 'note'
+
+export const SENSITIVE_FIELD_LABELS: Record<SensitiveFieldType, string> = {
+  babyName: '宝宝姓名',
+  birthDate: '出生日期',
+  weight: '体重',
+  height: '身高',
+  hospital: '就诊医院',
+  doctor: '主治医生',
+  diagnosis: '诊断信息',
+  prescription: '处方用药',
+  temperature: '体温数据',
+  photoUrl: '照片信息',
+  note: '备注内容',
+}
+
+export const SENSITIVE_FIELD_ICONS: Record<SensitiveFieldType, string> = {
+  babyName: 'Baby',
+  birthDate: 'Calendar',
+  weight: 'Scale',
+  height: 'Ruler',
+  hospital: 'Building2',
+  doctor: 'Stethoscope',
+  diagnosis: 'FileText',
+  prescription: 'Pill',
+  temperature: 'Thermometer',
+  photoUrl: 'Image',
+  note: 'FilePenLine',
+}
+
+export interface PrivacyPassword {
+  enabled: boolean
+  hash: string
+  lastSetAt: string
+}
+
+export interface ShareAuthorization {
+  id: string
+  targetMemberId: string
+  targetMemberName: string
+  fields: SensitiveFieldType[]
+  grantedAt: string
+  expiresAt: string | null
+  status: 'active' | 'revoked' | 'expired'
+}
+
+export interface ClearRecordLog {
+  id: string
+  category: 'feeding' | 'sleep' | 'diaper' | 'health' | 'medicine' | 'temperature' | 'photo' | 'all'
+  clearedAt: string
+  clearedBy: string
+  recordCount: number
+  dateRange: { from: string; to: string } | null
+}
+
+export const CLEAR_CATEGORY_LABELS: Record<ClearRecordLog['category'], string> = {
+  feeding: '喂养记录',
+  sleep: '睡眠记录',
+  diaper: '换尿布记录',
+  health: '健康记录',
+  medicine: '药品记录',
+  temperature: '体温记录',
+  photo: '照片日记',
+  all: '全部记录',
+}
+
+export interface PrivacySettings {
+  password: PrivacyPassword
+  hiddenFields: SensitiveFieldType[]
+  shareAuthorizations: ShareAuthorization[]
+  clearLogs: ClearRecordLog[]
+}
+
 export interface TemperatureAnomaly {
   id: string
   recordId: string

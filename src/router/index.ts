@@ -17,6 +17,7 @@ import DataRecoveryPage from '@/pages/DataRecoveryPage.vue'
 import OnboardingPage from '@/pages/OnboardingPage.vue'
 import TimelinePage from '@/pages/TimelinePage.vue'
 import CareCalendarPage from '@/pages/CareCalendarPage.vue'
+import PrivacyCenterPage from '@/pages/PrivacyCenterPage.vue'
 import { checkOnboardingStatus } from '@/composables/useOnboarding'
 
 const routes = [
@@ -36,6 +37,7 @@ const routes = [
   { path: '/reminders', name: 'reminders', component: ReminderCenterPage },
   { path: '/settings', name: 'settings', component: SettingsPage },
   { path: '/data-recovery', name: 'data-recovery', component: DataRecoveryPage },
+  { path: '/privacy-center', name: 'privacy-center', component: PrivacyCenterPage },
   { path: '/family', name: 'family', component: FamilyPage },
   { path: '/onboarding', name: 'onboarding', component: OnboardingPage },
 ]
