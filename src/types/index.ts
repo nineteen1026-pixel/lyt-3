@@ -906,3 +906,48 @@ export interface TemperatureAnomaly {
   description: string
 }
 
+export type RecordTemplateCategory = 'feeding' | 'sleep' | 'diaper'
+
+export const RECORD_TEMPLATE_CATEGORY_LABELS: Record<RecordTemplateCategory, string> = {
+  feeding: '喂养模板',
+  sleep: '睡眠模板',
+  diaper: '尿布模板',
+}
+
+export interface FeedingTemplateData {
+  feedingType: 'breast' | 'formula' | 'mixed'
+  breastSide?: 'left' | 'right' | 'both' | 'alternate'
+  leftDuration?: number
+  rightDuration?: number
+  totalDuration?: number
+  amount?: number
+  formulaPowder?: number
+  formulaWater?: number
+  note: string
+}
+
+export interface SleepTemplateData {
+  quality: 'deep' | 'light' | 'fussy'
+  durationMinutes?: number
+  note: string
+}
+
+export interface DiaperTemplateData {
+  diaperType: 'wet' | 'dirty' | 'mixed'
+  note: string
+}
+
+export type TemplateData = FeedingTemplateData | SleepTemplateData | DiaperTemplateData
+
+export interface RecordTemplate {
+  id: string
+  babyId: string
+  category: RecordTemplateCategory
+  name: string
+  icon?: string
+  data: TemplateData
+  isDefault?: boolean
+  createdAt: string
+  updatedAt: string
+}
+

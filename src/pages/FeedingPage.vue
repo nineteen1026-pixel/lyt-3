@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Milk, Check, Eye, User, ChevronDown, BarChart2, AlertCircle, Clock, Droplet, Scale } from 'lucide-vue-next'
+import { ArrowLeft, Milk, Check, Eye, User, ChevronDown, BarChart2, AlertCircle, Clock, Droplet, Scale, Plus, Trash2, Star, Save } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
 import { useFeedingAnalysis } from '@/composables/useFeedingAnalysis'
 import { BREAST_SIDE_LABELS, FEEDING_TYPE_LABELS } from '@/types'
+import type { FeedingTemplateData } from '@/types'
 
 const router = useRouter()
-const { addFeeding, canAddRecord, needsJoin, getMemberName, settings, updateSettings } = useBabyCare()
+const { addFeeding, canAddRecord, needsJoin, getMemberName, settings, updateSettings, getTemplatesByCategory, createFeedingTemplate, deleteTemplate, setDefaultTemplate, getDefaultTemplate } = useBabyCare()
 const { family, currentUserId } = useFamily()
 const { analytics, todayStats, sideBalance, avgIntervalMin, recommendations, nextSuggestedFeeding } = useFeedingAnalysis()
 
@@ -26,6 +27,61 @@ const note = ref('')
 const saved = ref(false)
 const caregiverId = ref(settings.value.defaultCaregiverId || currentUserId.value)
 const showCaregiverPicker = ref(false)
+
+const showTemplatePanel = ref(false)
+const showSaveTemplateDialog = ref(false)
+const newTemplateName = ref('')
+const newTemplateIcon = ref('🍼')
+
+const feedingTemplates = computed(() => getTemplatesByCategory('feeding'))
+
+const feedingIconOptions = ['🍼', '🤱', '🥛', '⏰', '🌙', '☀️', '💤', '⭐']
+
+function applyTemplate(templateId: string) {
+  const template = feedingTemplates.value.find(t => t.id === templateId)
+  if (!template) return
+  const data = template.data as FeedingTemplateData
+  feedingType.value = data.feedingType
+  if (data.breastSide !== undefined) breastSide.value = data.breastSide
+  if (data.leftDuration !== undefined) leftDuration.value = data.leftDuration
+  if (data.rightDuration !== undefined) rightDuration.value = data.rightDuration
+  if (data.totalDuration !== undefined) totalDuration.value = data.totalDuration
+  if (data.amount !== undefined) amount.value = data.amount
+  if (data.formulaPowder !== undefined) formulaPowder.value = data.formulaPowder
+  if (data.formulaWater !== undefined) formulaWater.value = data.formulaWater
+  note.value = data.note
+  showTemplatePanel.value = false
+}
+
+function handleSaveTemplate() {
+  if (!newTemplateName.value.trim()) return
+  const isBreast = feedingType.value === 'breast' || feedingType.value === 'mixed'
+  const isFormula = feedingType.value === 'formula' || feedingType.value === 'mixed'
+  const data: FeedingTemplateData = {
+    feedingType: feedingType.value,
+    breastSide: isBreast ? breastSide.value : undefined,
+    leftDuration: isBreast ? (breastSide.value === 'right' ? 0 : leftDuration.value) : undefined,
+    rightDuration: isBreast ? (breastSide.value === 'left' ? 0 : rightDuration.value) : undefined,
+    totalDuration: isBreast ? totalDuration.value : 0,
+    amount: isFormula ? amount.value : 0,
+    formulaPowder: isFormula ? formulaPowder.value : undefined,
+    formulaWater: isFormula ? formulaWater.value : undefined,
+    note: note.value,
+  }
+  createFeedingTemplate(newTemplateName.value.trim(), newTemplateIcon.value, data)
+  newTemplateName.value = ''
+  showSaveTemplateDialog.value = false
+}
+
+function handleDeleteTemplate(id: string) {
+  if (confirm('确定要删除这个模板吗？')) {
+    deleteTemplate(id)
+  }
+}
+
+function handleSetDefault(id: string) {
+  setDefaultTemplate(id)
+}
 
 const reminderEnabled = ref(settings.value.feedingReminder?.enabled ?? true)
 const reminderInterval = ref(settings.value.feedingReminder?.intervalMinutes ?? 180)
@@ -173,6 +229,65 @@ const maxHourCount = computed(() => Math.max(1, ...analytics.value.dailyDistribu
 
     <template v-else>
       <div v-if="activeTab === 'record'" class="space-y-5">
+        <div v-if="feedingTemplates.length > 0" class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-bold text-warm-400 dark:text-warm-100">常用模板</p>
+            <button
+              type="button"
+              @click="showTemplatePanel = !showTemplatePanel"
+              class="text-xs text-peach-500 hover:text-peach-600 font-semibold flex items-center gap-1"
+            >
+              <ChevronDown :size="12" :class="{ 'rotate-180': showTemplatePanel }" />
+              {{ showTemplatePanel ? '收起' : '展开' }}
+            </button>
+          </div>
+          <div v-if="showTemplatePanel" class="space-y-2">
+            <div
+              v-for="template in feedingTemplates"
+              :key="template.id"
+              class="flex items-center gap-3 p-2 rounded-xl bg-cream-50 dark:bg-warm-500/10 hover:bg-cream-100 dark:hover:bg-warm-500/20 transition-colors group"
+            >
+              <button
+                type="button"
+                @click="applyTemplate(template.id)"
+                class="flex-1 flex items-center gap-2 text-left"
+              >
+                <span class="text-xl">{{ template.icon || '📋' }}</span>
+                <div class="flex-1">
+                  <p class="text-sm font-bold text-warm-500 dark:text-cream-100 flex items-center gap-1">
+                    {{ template.name }}
+                    <Star v-if="template.isDefault" :size="12" class="text-amber-400 fill-amber-400" />
+                  </p>
+                  <p class="text-[10px] text-warm-300 dark:text-warm-200">
+                    {{ FEEDING_TYPE_LABELS[(template.data as FeedingTemplateData).feedingType] }}
+                    <template v-if="(template.data as FeedingTemplateData).amount > 0">
+                      · {{ (template.data as FeedingTemplateData).amount }}ml
+                    </template>
+                  </p>
+                </div>
+              </button>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  @click.stop="handleSetDefault(template.id)"
+                  class="p-1.5 rounded-lg hover:bg-cream-200 dark:hover:bg-warm-500/30"
+                  :title="template.isDefault ? '取消默认' : '设为默认'"
+                >
+                  <Star :size="14" :class="template.isDefault ? 'text-amber-400 fill-amber-400' : 'text-warm-300'" />
+                </button>
+                <button
+                  type="button"
+                  @click.stop="handleDeleteTemplate(template.id)"
+                  class="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20"
+                  title="删除模板"
+                >
+                  <Trash2 :size="14" class="text-rose-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="bg-gradient-to-r from-peach-50 to-mint-50 dark:from-peach-500/10 dark:to-mint-500/10 rounded-2xl p-4">
           <div class="flex items-center gap-2 mb-2">
             <Clock :size="14" class="text-peach-400" />
@@ -352,6 +467,15 @@ const maxHourCount = computed(() => Math.max(1, ...analytics.value.dailyDistribu
 
         <button
           type="button"
+          @click="showSaveTemplateDialog = true"
+          class="w-full bg-white dark:bg-[#2a1f1a] border-2 border-dashed border-cream-200 dark:border-warm-500/30 text-warm-400 dark:text-warm-200 rounded-2xl py-2.5 font-bold text-sm transition-all hover:border-peach-300 hover:text-peach-500 dark:hover:border-peach-500/30 flex items-center justify-center gap-2"
+        >
+          <Save :size="16" />
+          保存为常用模板
+        </button>
+
+        <button
+          type="button"
           @click="handleSubmit"
           class="w-full bg-peach-400 hover:bg-peach-500 text-white rounded-2xl py-3.5 font-bold text-sm transition-all active:scale-[0.98] shadow-lg shadow-peach-200 dark:shadow-peach-500/20"
         >
@@ -462,5 +586,72 @@ const maxHourCount = computed(() => Math.max(1, ...analytics.value.dailyDistribu
         </div>
       </div>
     </template>
+
+    <div v-if="showSaveTemplateDialog" class="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center" @click.self="showSaveTemplateDialog = false">
+      <div class="bg-white dark:bg-[#2a1f1a] w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl p-5 space-y-4 animate-slide-up">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold text-warm-500 dark:text-cream-100">保存为模板</h3>
+          <button @click="showSaveTemplateDialog = false" class="text-warm-300 hover:text-warm-400">
+            <ChevronDown :size="24" class="rotate-90" />
+          </button>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-2 block">模板名称</label>
+          <input
+            v-model="newTemplateName"
+            type="text"
+            placeholder="例如：固定奶量90ml"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-4 py-3 text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-sm font-bold text-warm-400 dark:text-warm-100 mb-2 block">选择图标</label>
+          <div class="grid grid-cols-8 gap-2">
+            <button
+              v-for="icon in feedingIconOptions"
+              :key="icon"
+              type="button"
+              @click="newTemplateIcon = icon"
+              class="aspect-square rounded-xl text-xl flex items-center justify-center transition-all border-2"
+              :class="newTemplateIcon === icon
+                ? 'bg-peach-50 dark:bg-peach-500/10 border-peach-400'
+                : 'bg-cream-50 dark:bg-warm-500/10 border-transparent hover:border-cream-200'"
+            >
+              {{ icon }}
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-cream-50 dark:bg-warm-500/10 rounded-xl p-3">
+          <p class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1">将保存以下内容：</p>
+          <ul class="text-[11px] text-warm-300 dark:text-warm-200 space-y-0.5">
+            <li>• 喂养类型: {{ FEEDING_TYPE_LABELS[feedingType] }}</li>
+            <li v-if="feedingType === 'formula' || feedingType === 'mixed'">• 奶量: {{ amount }}ml</li>
+            <li v-if="feedingType === 'breast' || feedingType === 'mixed'">• 哺乳侧: {{ BREAST_SIDE_LABELS[breastSide] }}</li>
+            <li v-if="note">• 备注: {{ note.slice(0, 20) }}{{ note.length > 20 ? '...' : '' }}</li>
+          </ul>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button
+            type="button"
+            @click="showSaveTemplateDialog = false"
+            class="flex-1 py-3 rounded-xl font-bold text-sm bg-cream-100 dark:bg-warm-500/20 text-warm-400 dark:text-warm-200"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            @click="handleSaveTemplate"
+            :disabled="!newTemplateName.trim()"
+            class="flex-1 py-3 rounded-xl font-bold text-sm bg-peach-400 text-white disabled:opacity-40"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

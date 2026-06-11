@@ -1,11 +1,11 @@
 import { computed } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, ActivityRecord, AppSettings, DaySummary, SleepGoal, SleepGoalDailyAchievement, SleepGoalWeeklyStats } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, ActivityRecord, AppSettings, DaySummary, SleepGoal, SleepGoalDailyAchievement, SleepGoalWeeklyStats, RecordTemplate, RecordTemplateCategory, TemplateData, FeedingTemplateData, SleepTemplateData, DiaperTemplateData } from '@/types'
 import {
   babies, feedings, sleeps, diapers, settings, currentBabyId,
   currentUserId, persistData, genId, hasPermission,
   canAddRecord, canDeleteRecord, canEditRecord, canManageBabies,
   canViewRecord, canExportData, addBabyToFamily, getMemberName,
-  needsJoin, isFamilyMember, sleepGoals,
+  needsJoin, isFamilyMember, sleepGoals, templates,
 } from './useSharedStore'
 
 export function useBabyCare() {
@@ -595,6 +595,101 @@ export function useBabyCare() {
     }
   }
 
+  const currentTemplates = computed(() =>
+    templates.value.filter(t => t.babyId === currentBabyId.value)
+  )
+
+  function getTemplatesByCategory(category: RecordTemplateCategory): RecordTemplate[] {
+    return currentTemplates.value.filter(t => t.category === category)
+  }
+
+  function getTemplateById(id: string): RecordTemplate | undefined {
+    return templates.value.find(t => t.id === id)
+  }
+
+  function addTemplate(data: Omit<RecordTemplate, 'id' | 'babyId' | 'createdAt' | 'updatedAt'> & { babyId?: string }): RecordTemplate | null {
+    if (!canAddRecord.value) return null
+    const bid = data.babyId || currentBabyId.value
+    if (!bid) return null
+    const now = new Date().toISOString()
+    const newTemplate: RecordTemplate = {
+      ...data,
+      id: genId(),
+      babyId: bid,
+      createdAt: now,
+      updatedAt: now,
+    }
+    templates.value.push(newTemplate)
+    persistData()
+    return newTemplate
+  }
+
+  function updateTemplate(id: string, data: Partial<RecordTemplate>): boolean {
+    if (!canEditRecord.value) return false
+    const idx = templates.value.findIndex(t => t.id === id)
+    if (idx < 0) return false
+    templates.value[idx] = {
+      ...templates.value[idx],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    }
+    persistData()
+    return true
+  }
+
+  function deleteTemplate(id: string): boolean {
+    if (!canDeleteRecord.value) return false
+    const idx = templates.value.findIndex(t => t.id === id)
+    if (idx < 0) return false
+    templates.value.splice(idx, 1)
+    persistData()
+    return true
+  }
+
+  function createFeedingTemplate(name: string, icon: string, data: FeedingTemplateData, isDefault = false): RecordTemplate | null {
+    return addTemplate({
+      category: 'feeding',
+      name,
+      icon,
+      data,
+      isDefault,
+    })
+  }
+
+  function createSleepTemplate(name: string, icon: string, data: SleepTemplateData, isDefault = false): RecordTemplate | null {
+    return addTemplate({
+      category: 'sleep',
+      name,
+      icon,
+      data,
+      isDefault,
+    })
+  }
+
+  function createDiaperTemplate(name: string, icon: string, data: DiaperTemplateData, isDefault = false): RecordTemplate | null {
+    return addTemplate({
+      category: 'diaper',
+      name,
+      icon,
+      data,
+      isDefault,
+    })
+  }
+
+  function getDefaultTemplate(category: RecordTemplateCategory): RecordTemplate | undefined {
+    return currentTemplates.value.find(t => t.category === category && t.isDefault)
+  }
+
+  function setDefaultTemplate(id: string): boolean {
+    const template = getTemplateById(id)
+    if (!template) return false
+    const sameCategoryTemplates = currentTemplates.value.filter(t => t.category === template.category)
+    for (const t of sameCategoryTemplates) {
+      updateTemplate(t.id, { isDefault: t.id === id })
+    }
+    return true
+  }
+
   return {
     babies,
     baby,
@@ -647,5 +742,17 @@ export function useBabyCare() {
     getDaySleepTimes,
     parseTimeToMinutes,
     minutesToTimeStr,
+    templates,
+    currentTemplates,
+    getTemplatesByCategory,
+    getTemplateById,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    createFeedingTemplate,
+    createSleepTemplate,
+    createDiaperTemplate,
+    getDefaultTemplate,
+    setDefaultTemplate,
   }
 }

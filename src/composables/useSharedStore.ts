@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution, TemperatureRecord, TemperatureReminderSettings } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution, TemperatureRecord, TemperatureReminderSettings, RecordTemplate } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -29,6 +29,7 @@ const LS_KEYS = {
   scheduleExecutions: 'baby-care:schedule-executions',
   temperatures: 'baby-care:temperatures',
   temperatureReminder: 'baby-care:temperature-reminder',
+  templates: 'baby-care:templates',
 }
 
 const SS_KEYS = {
@@ -111,6 +112,8 @@ export const temperatureReminderSettings = ref<TemperatureReminderSettings>(load
   repeatReminderMinutes: 30,
 }))
 
+export const templates = ref<RecordTemplate[]>(loadLS<RecordTemplate[]>(LS_KEYS.templates, []))
+
 if (!initialized) {
   localStorage.setItem(LS_KEYS.initialized, 'true')
 }
@@ -152,6 +155,7 @@ try {
       notifyOnHighFever: true,
       repeatReminderMinutes: 30,
     })
+    templates.value = loadLS<RecordTemplate[]>(LS_KEYS.templates, [])
   }
 } catch {
   syncChannel = null
@@ -182,6 +186,7 @@ export function persistData() {
   saveLS(LS_KEYS.scheduleExecutions, scheduleExecutions.value)
   saveLS(LS_KEYS.temperatures, temperatures.value)
   saveLS(LS_KEYS.temperatureReminder, temperatureReminderSettings.value)
+  saveLS(LS_KEYS.templates, templates.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
 
