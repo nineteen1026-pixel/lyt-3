@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { Home, Clock, Bell, Heart, BookOpen, Camera, CalendarDays } from 'lucide-vue-next'
+import { Home, Clock, Heart, BookOpen, CalendarDays } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -8,7 +8,7 @@ const router = useRouter()
 const tabs = [
   { name: 'dashboard', path: '/', icon: Home, label: '首页' },
   { name: 'care-calendar', path: '/care-calendar', icon: CalendarDays, label: '日历' },
-  { name: 'timeline', path: '/timeline', icon: Camera, label: '时光' },
+  { name: 'health', path: '/health', icon: Heart, label: '健康' },
   { name: 'history', path: '/history', icon: Clock, label: '记录' },
   { name: 'knowledge', path: '/knowledge', icon: BookOpen, label: '指南' },
 ]
@@ -26,7 +26,7 @@ function isActive(path: string) {
         v-for="tab in tabs"
         :key="tab.name"
         @click="router.push(tab.path)"
-        class="flex flex-col items-center justify-center gap-0.5 w-16 h-full transition-colors"
+        class="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors"
         :class="isActive(tab.path)
           ? 'text-peach-400 dark:text-peach-400'
           : 'text-warm-300 dark:text-warm-200 hover:text-warm-400'"

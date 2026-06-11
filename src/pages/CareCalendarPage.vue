@@ -79,6 +79,7 @@ function getMonthDays() {
   const startDayOfWeek = firstDay.getDay()
   const totalDays = lastDay.getDate()
   const prevMonthLastDay = new Date(viewYear.value, viewMonth.value, 0).getDate()
+  const today = new Date()
 
   const days: {
     date: number
@@ -93,13 +94,15 @@ function getMonthDays() {
     const d = prevMonthLastDay - i
     const pm = viewMonth.value === 0 ? 11 : viewMonth.value - 1
     const py = viewMonth.value === 0 ? viewYear.value - 1 : viewYear.value
+    const fullDate = `${py}-${String(pm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const dateObj = new Date(py, pm, d)
     days.push({
       date: d,
       isCurrentMonth: false,
-      fullDate: `${py}-${String(pm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-      summary: null,
-      isToday: false,
-      isSelected: false,
+      fullDate,
+      summary: getDaySummary(dateObj),
+      isToday: dateObj.toDateString() === today.toDateString(),
+      isSelected: selectedDate.value === fullDate,
     })
   }
 
@@ -107,7 +110,6 @@ function getMonthDays() {
     const fullDate = `${viewYear.value}-${String(viewMonth.value + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     const dateObj = new Date(viewYear.value, viewMonth.value, d)
     const summary = getDaySummary(dateObj)
-    const today = new Date()
     days.push({
       date: d,
       isCurrentMonth: true,
@@ -122,13 +124,15 @@ function getMonthDays() {
   for (let d = 1; d <= remaining; d++) {
     const nm = viewMonth.value === 11 ? 0 : viewMonth.value + 1
     const ny = viewMonth.value === 11 ? viewYear.value + 1 : viewYear.value
+    const fullDate = `${ny}-${String(nm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const dateObj = new Date(ny, nm, d)
     days.push({
       date: d,
       isCurrentMonth: false,
-      fullDate: `${ny}-${String(nm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-      summary: null,
-      isToday: false,
-      isSelected: false,
+      fullDate,
+      summary: getDaySummary(dateObj),
+      isToday: dateObj.toDateString() === today.toDateString(),
+      isSelected: selectedDate.value === fullDate,
     })
   }
 
@@ -524,16 +528,17 @@ function hasActivity(day: typeof calendarDays.value[0], type: 'feeding' | 'sleep
             @click="selectDate(day)"
             class="relative flex flex-col items-center justify-center py-1.5 rounded-xl transition-all"
             :class="[
-              day.isCurrentMonth ? '' : 'opacity-30',
               day.isSelected
                 ? 'bg-peach-400 text-white shadow-sm'
                 : day.isToday
                   ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500'
-                  : 'text-warm-500 dark:text-cream-100 hover:bg-cream-50 dark:hover:bg-warm-500/10'
+                  : day.isCurrentMonth
+                    ? 'text-warm-500 dark:text-cream-100 hover:bg-cream-50 dark:hover:bg-warm-500/10'
+                    : 'text-warm-300 dark:text-warm-200 hover:bg-cream-50 dark:hover:bg-warm-500/10'
             ]"
           >
             <span class="text-sm font-bold leading-tight">{{ day.date }}</span>
-            <div v-if="day.summary" class="flex gap-0.5 mt-0.5">
+            <div v-if="day.summary && (hasActivity(day, 'feeding') || hasActivity(day, 'sleep') || hasActivity(day, 'diaper'))" class="flex gap-0.5 mt-0.5">
               <span v-if="hasActivity(day, 'feeding')" class="w-1.5 h-1.5 rounded-full" :class="day.isSelected ? 'bg-white' : 'bg-peach-400'"></span>
               <span v-if="hasActivity(day, 'sleep')" class="w-1.5 h-1.5 rounded-full" :class="day.isSelected ? 'bg-white' : 'bg-mint-400'"></span>
               <span v-if="hasActivity(day, 'diaper')" class="w-1.5 h-1.5 rounded-full" :class="day.isSelected ? 'bg-white' : 'bg-warm-300'"></span>

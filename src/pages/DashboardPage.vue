@@ -375,6 +375,19 @@ function handleSwitchBaby(id: string) {
 
     <section class="mb-6">
       <button
+        @click="router.push('/care-calendar')"
+        class="w-full flex items-center gap-3 bg-gradient-to-r from-peach-50 to-cream-100 dark:from-peach-500/10 dark:to-cream-300/10 rounded-2xl px-4 py-3 shadow-sm mb-3"
+      >
+        <div class="w-9 h-9 rounded-xl bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+          <CalendarDays :size="18" class="text-peach-400" />
+        </div>
+        <div class="flex-1 text-left">
+          <p class="text-sm font-bold text-warm-500 dark:text-cream-100">照护日历</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">按日期汇总喂奶 · 睡眠 · 尿布 · 快速补录</p>
+        </div>
+        <ChevronRight :size="16" class="text-warm-300 dark:text-warm-200" />
+      </button>
+      <button
         @click="router.push('/schedule')"
         class="w-full flex items-center gap-3 bg-gradient-to-r from-amber-50 to-peach-50 dark:from-amber-500/10 dark:to-peach-500/10 rounded-2xl px-4 py-3 shadow-sm mb-3"
       >
