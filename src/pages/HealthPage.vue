@@ -10,18 +10,39 @@ import {
 import { useHealthRecord } from '@/composables/useHealthRecord'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useFamily } from '@/composables/useFamily'
-import type { VaccineRecord } from '@/types'
+import { useTemperature } from '@/composables/useTemperature'
+import type { VaccineRecord, TemperatureSite } from '@/types'
+import { TEMPERATURE_SITE_LABELS } from '@/types'
 
 const router = useRouter()
 const {
   growths, vaccines, checkups, medicalVisits, latestGrowth,
   upcomingVaccines, doneVaccines, upcomingFollowUps,
   growthTrend, weightGainRate,
-  canAddRecord, addGrowth, addVaccine, addCheckup, addMedicalVisit,
+  canAddRecord, canDeleteRecord, canEditRecord,
+  addGrowth, addVaccine, addCheckup, addMedicalVisit,
   markVaccineDone, getMemberName,
 } = useHealthRecord()
 const { settings } = useBabyCare()
 const { family, currentUserId } = useFamily()
+const {
+  temperatures: temperatureRecords,
+  latestTemperature,
+  todayStats: temperatureTodayStats,
+  weeklyTrend: temperatureWeeklyTrend,
+  weeklyStats: temperatureWeeklyStats,
+  hasFeverToday,
+  hasHighFeverToday,
+  anomalies: temperatureAnomalies,
+  getTemperatureLevelLabel,
+  getTemperatureColor,
+  getTemperatureBgColor,
+  addTemperature,
+  updateTemperature,
+  deleteTemperature,
+  updateReminderSettings,
+  reminderSettings: temperatureReminderSettings,
+} = useTemperature()
 
 const caregiverId = ref(settings.value.defaultCaregiverId || currentUserId.value)
 const showCaregiverPicker = ref(false)
@@ -38,7 +59,7 @@ function selectCaregiver(id: string) {
   showCaregiverPicker.value = false
 }
 
-type TabKey = 'growth' | 'vaccine' | 'checkup' | 'medical' | 'trend'
+type TabKey = 'growth' | 'vaccine' | 'checkup' | 'medical' | 'temperature' | 'trend'
 const activeTab = ref<TabKey>('growth')
 
 const tabs: { key: TabKey; label: string; icon: typeof Ruler }[] = [
@@ -46,6 +67,7 @@ const tabs: { key: TabKey; label: string; icon: typeof Ruler }[] = [
   { key: 'vaccine', label: '疫苗计划', icon: Syringe },
   { key: 'checkup', label: '体检记录', icon: Stethoscope },
   { key: 'medical', label: '就医记录', icon: FileText },
+  { key: 'temperature', label: '体温记录', icon: ThermometerSun },
   { key: 'trend', label: '趋势曲线', icon: TrendingUp },
 ]
 
@@ -53,6 +75,8 @@ const showAddGrowth = ref(false)
 const showAddVaccine = ref(false)
 const showAddCheckup = ref(false)
 const showAddMedicalVisit = ref(false)
+const showAddTemperature = ref(false)
+const showTempSettings = ref(false)
 
 const newGrowth = ref({ height: 67, weight: 7.5, headCircumference: 42, note: '' })
 const newGrowthDate = ref(new Date().toISOString().slice(0, 10))
@@ -75,6 +99,18 @@ const newMedicalVisit = ref({
 const newMedicalVisitDate = ref(new Date().toISOString().slice(0, 10))
 const newAttachments = ref<string[]>([])
 const attachmentInput = ref<HTMLInputElement | null>(null)
+
+const newTemperature = ref({
+  temperature: 36.5,
+  site: 'axillary' as TemperatureSite,
+  note: '',
+})
+const newTemperatureDate = ref(new Date().toISOString().slice(0, 10))
+const getDefaultTime = () => {
+  const d = new Date()
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+const newTemperatureTime = ref(getDefaultTime())
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -162,6 +198,41 @@ function handleAddMedicalVisit() {
     note: '',
   }
   newAttachments.value = []
+}
+
+function handleAddTemperature() {
+  const dateStr = `${newTemperatureDate.value}T${newTemperatureTime.value}:00`
+  addTemperature({
+    timestamp: new Date(dateStr).toISOString(),
+    temperature: newTemperature.value.temperature,
+    site: newTemperature.value.site,
+    note: newTemperature.value.note,
+    caregiverId: caregiverId.value,
+  })
+  showAddTemperature.value = false
+  newTemperature.value = {
+    temperature: 36.5,
+    site: 'axillary',
+    note: '',
+  }
+  const now = new Date()
+  newTemperatureDate.value = now.toISOString().slice(0, 10)
+  newTemperatureTime.value = getDefaultTime()
+}
+
+function handleDeleteTemperature(id: string) {
+  if (confirm('确定要删除这条体温记录吗？')) {
+    deleteTemperature(id)
+  }
+}
+
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+}
+
+function toggleTempReminder() {
+  updateReminderSettings({ enabled: !temperatureReminderSettings.value.enabled })
 }
 
 function handleAddAttachment() {
@@ -957,6 +1028,288 @@ const trendData = computed(() => {
           <p v-if="visit.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-2 pt-2 border-t border-cream-100 dark:border-warm-500/10">
             备注：{{ visit.note }}
           </p>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="activeTab === 'temperature'">
+      <div v-if="hasHighFeverToday" class="mb-4">
+        <div class="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-500/10 dark:to-rose-500/10 rounded-2xl p-4 border border-red-100 dark:border-red-500/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+              <AlertCircle :size="20" class="text-red-500" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-red-600 dark:text-red-400">今日有高热记录</p>
+              <p class="text-[11px] text-red-500/80 dark:text-red-400/70">最高体温 {{ temperatureTodayStats.maxTemperature }}℃，请密切关注并及时就医</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="hasFeverToday" class="mb-4">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 rounded-2xl p-4 border border-amber-100 dark:border-amber-500/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+              <ThermometerSun :size="20" class="text-amber-500" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-amber-600 dark:text-amber-400">今日有低热记录</p>
+              <p class="text-[11px] text-amber-500/80 dark:text-amber-400/70">共 {{ temperatureTodayStats.feverCount }} 次发热，请注意观察和物理降温</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-500/10 dark:to-orange-500/10 rounded-2xl p-3 text-center">
+          <ThermometerSun :size="16" class="mx-auto text-rose-400 mb-1" />
+          <p class="text-xl font-extrabold text-rose-500 dark:text-rose-400 font-display">
+            {{ latestTemperature ? latestTemperature.temperature.toFixed(1) : '-' }}
+          </p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">最新体温</p>
+        </div>
+        <div class="bg-mint-50 dark:bg-mint-500/10 rounded-2xl p-3 text-center">
+          <Activity :size="16" class="mx-auto text-mint-500 mb-1" />
+          <p class="text-xl font-extrabold text-mint-500 dark:text-mint-400 font-display">
+            {{ temperatureTodayStats.count }}
+          </p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">今日测量</p>
+        </div>
+        <div class="bg-cream-100 dark:bg-cream-300/10 rounded-2xl p-3 text-center">
+          <TrendingUp :size="16" class="mx-auto text-warm-400 mb-1" />
+          <p class="text-xl font-extrabold text-warm-400 dark:text-cream-300 font-display">
+            {{ temperatureTodayStats.avgTemperature ? temperatureTodayStats.avgTemperature.toFixed(1) : '-' }}
+          </p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">日均体温</p>
+        </div>
+      </div>
+
+      <div v-if="temperatureWeeklyStats.some(d => d.count > 0)" class="mb-4">
+        <div class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 shadow-sm">
+          <h3 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-3 flex items-center gap-1.5">
+            <TrendingUp :size="12" /> 近7天体温趋势
+          </h3>
+          <div class="flex items-end gap-1 h-24">
+            <div v-for="(day, i) in temperatureWeeklyStats" :key="i" class="flex-1 flex flex-col items-center gap-1">
+              <div class="w-full flex-1 flex items-end justify-center">
+                <div
+                  v-if="day.maxTemperature > 0"
+                  class="w-6 rounded-t-full transition-all duration-500"
+                  :class="day.maxTemperature >= temperatureReminderSettings.feverThreshold ? 'bg-rose-400' : 'bg-mint-400'"
+                  :style="{ height: Math.max(8, ((day.maxTemperature - 35.5) / 3) * 100) + 'px' }"
+                ></div>
+              </div>
+              <span class="text-[9px] text-warm-300 dark:text-warm-200">
+                {{ day.date.slice(5) }}
+              </span>
+            </div>
+          </div>
+          <div class="flex justify-between text-[9px] text-warm-300 dark:text-warm-200 mt-2">
+            <span>35.5℃</span>
+            <span>38.5℃</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100">体温记录</h2>
+        <div class="flex items-center gap-2">
+          <button
+            @click="showTempSettings = !showTempSettings"
+            class="flex items-center gap-1 text-xs font-bold text-warm-400 hover:text-warm-500 dark:text-warm-200"
+          >
+            <AlertCircle :size="14" /> 提醒设置
+          </button>
+          <button
+            v-if="canAddRecord"
+            @click="showAddTemperature = !showAddTemperature"
+            class="flex items-center gap-1 text-xs font-bold text-peach-400 hover:text-peach-500"
+          >
+            <Plus :size="14" /> 添加
+          </button>
+        </div>
+      </div>
+
+      <div v-if="showTempSettings" class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 mb-3 shadow-sm border border-cream-200 dark:border-warm-500/20">
+        <h3 class="text-sm font-bold text-warm-500 dark:text-cream-100 mb-3 flex items-center gap-2">
+          <AlertCircle :size="16" class="text-amber-500" />
+          异常体温提醒设置
+        </h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-warm-400 dark:text-warm-200">开启体温提醒</span>
+            <button
+              @click="toggleTempReminder"
+              class="w-11 h-6 rounded-full transition-colors"
+              :class="temperatureReminderSettings.enabled ? 'bg-peach-400' : 'bg-cream-200 dark:bg-warm-500/20'"
+            >
+              <div
+                class="w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+                :class="temperatureReminderSettings.enabled ? 'translate-x-5.5' : 'translate-x-0.5'"
+              ></div>
+            </button>
+          </div>
+          <div v-if="temperatureReminderSettings.enabled">
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">发热阈值 (℃)</label>
+            <input
+              v-model.number="temperatureReminderSettings.feverThreshold"
+              type="number"
+              min="36"
+              max="39"
+              step="0.1"
+              @change="updateReminderSettings({ feverThreshold: temperatureReminderSettings.feverThreshold })"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300"
+            />
+          </div>
+          <div v-if="temperatureReminderSettings.enabled">
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">高热阈值 (℃)</label>
+            <input
+              v-model.number="temperatureReminderSettings.highFeverThreshold"
+              type="number"
+              min="37"
+              max="41"
+              step="0.1"
+              @change="updateReminderSettings({ highFeverThreshold: temperatureReminderSettings.highFeverThreshold })"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300"
+            />
+          </div>
+          <p v-if="temperatureReminderSettings.enabled" class="text-[10px] text-warm-300 dark:text-warm-200">
+            当体温超过阈值时，将在应用内显示提醒
+          </p>
+        </div>
+      </div>
+
+      <div v-if="showAddTemperature" class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 mb-3 shadow-sm border border-cream-200 dark:border-warm-500/20">
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">体温 (℃)</label>
+          <div class="relative">
+            <ThermometerSun :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400" />
+            <input v-model.number="newTemperature.temperature" type="number" min="35" max="42" step="0.1"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-10 pr-3 py-2.5 text-lg font-bold text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">日期</label>
+            <input v-model="newTemperatureDate" type="date"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">时间</label>
+            <input v-model="newTemperatureTime" type="time"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">测量部位</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="(label, key) in TEMPERATURE_SITE_LABELS"
+              :key="key"
+              @click="newTemperature.site = key as TemperatureSite"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+              :class="newTemperature.site === key
+                ? 'bg-peach-100 dark:bg-peach-500/20 text-peach-500'
+                : 'bg-cream-100 dark:bg-warm-500/10 text-warm-300 dark:text-warm-200'"
+            >
+              {{ label }}
+            </button>
+          </div>
+        </div>
+        <div v-if="familyMembers.length > 0" class="mb-3 relative">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
+          <button
+            type="button"
+            @click="showCaregiverPicker = !showCaregiverPicker"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-peach-300"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                <User :size="12" class="text-peach-400" />
+              </div>
+              <span class="text-sm text-warm-500 dark:text-cream-100">{{ caregiverName }}</span>
+            </div>
+            <ChevronDown :size="14" class="text-warm-300 dark:text-warm-200 transition-transform" :class="{ 'rotate-180': showCaregiverPicker }" />
+          </button>
+          <div
+            v-if="showCaregiverPicker"
+            class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-40 overflow-y-auto"
+          >
+            <button
+              v-for="member in familyMembers"
+              :key="member.id"
+              type="button"
+              @click="selectCaregiver(member.id)"
+              class="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="caregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-6 h-6 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                <User :size="12" class="text-warm-400" />
+              </div>
+              <span>{{ member.name }}</span>
+              <Check v-if="caregiverId === member.id" :size="12" class="ml-auto text-peach-400" />
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
+          <input v-model="newTemperature.note" type="text" placeholder="可选备注，如：吃完退烧药后..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+        </div>
+        <div class="flex gap-2">
+          <button @click="showAddTemperature = false" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10">取消</button>
+          <button @click="handleAddTemperature" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-peach-400 hover:bg-peach-500 shadow-md shadow-peach-200 dark:shadow-peach-500/20">保存</button>
+        </div>
+      </div>
+
+      <div v-if="temperatureRecords.length === 0" class="text-center py-10">
+        <ThermometerSun :size="32" class="mx-auto text-warm-300 dark:text-warm-200 mb-2" />
+        <p class="text-sm text-warm-300 dark:text-warm-200">暂无体温记录</p>
+        <p class="text-xs text-warm-200 dark:text-warm-400 mt-1">点击上方"添加"开始记录</p>
+      </div>
+
+      <div class="space-y-2">
+        <div
+          v-for="record in temperatureRecords"
+          :key="record.id"
+          class="bg-white dark:bg-[#2a1f1a] rounded-xl px-4 py-3 shadow-sm"
+        >
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-warm-500 dark:text-cream-100">{{ formatDate(record.timestamp) }}</span>
+              <span class="text-xs text-warm-300 dark:text-warm-200">{{ formatTime(record.timestamp) }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span
+                class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                :class="getTemperatureBgColor(record.temperature) + ' ' + getTemperatureColor(record.temperature)"
+              >
+                {{ getTemperatureLevelLabel(record.temperature) }}
+              </span>
+              <button
+                v-if="canDeleteRecord"
+                @click="handleDeleteTemperature(record.id)"
+                class="text-warm-300 hover:text-rose-400 transition-colors"
+              >
+                <X :size="14" />
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1">
+              <ThermometerSun :size="16" :class="getTemperatureColor(record.temperature)" />
+              <span class="text-lg font-extrabold font-display" :class="getTemperatureColor(record.temperature)">
+                {{ record.temperature.toFixed(1) }}℃
+              </span>
+            </div>
+            <span class="text-[10px] text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10 px-2 py-0.5 rounded">
+              {{ TEMPERATURE_SITE_LABELS[record.site] }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between mt-1">
+            <span class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName(record.caregiverId) }}</span>
+          </div>
+          <p v-if="record.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-1">{{ record.note }}</p>
         </div>
       </div>
     </section>

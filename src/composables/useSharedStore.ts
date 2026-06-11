@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution, TemperatureRecord, TemperatureReminderSettings } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -27,6 +27,8 @@ const LS_KEYS = {
   familyComments: 'baby-care:family-comments',
   schedulePlans: 'baby-care:schedule-plans',
   scheduleExecutions: 'baby-care:schedule-executions',
+  temperatures: 'baby-care:temperatures',
+  temperatureReminder: 'baby-care:temperature-reminder',
 }
 
 const SS_KEYS = {
@@ -97,6 +99,17 @@ export const milestones = ref<Milestone[]>(loadLS<Milestone[]>(LS_KEYS.milestone
 export const familyComments = ref<FamilyComment[]>(loadLS<FamilyComment[]>(LS_KEYS.familyComments, []))
 export const schedulePlans = ref<SchedulePlan[]>(loadLS<SchedulePlan[]>(LS_KEYS.schedulePlans, []))
 export const scheduleExecutions = ref<ScheduleExecution[]>(loadLS<ScheduleExecution[]>(LS_KEYS.scheduleExecutions, []))
+export const temperatures = ref<TemperatureRecord[]>(loadLS<TemperatureRecord[]>(LS_KEYS.temperatures, []))
+export const temperatureReminderSettings = ref<TemperatureReminderSettings>(loadLS<TemperatureReminderSettings>(LS_KEYS.temperatureReminder, {
+  enabled: false,
+  feverThreshold: 37.5,
+  highFeverThreshold: 38.5,
+  soundEnabled: true,
+  vibrateEnabled: true,
+  notifyOnFever: true,
+  notifyOnHighFever: true,
+  repeatReminderMinutes: 30,
+}))
 
 if (!initialized) {
   localStorage.setItem(LS_KEYS.initialized, 'true')
@@ -128,6 +141,17 @@ try {
     familyComments.value = loadLS<FamilyComment[]>(LS_KEYS.familyComments, [])
     schedulePlans.value = loadLS<SchedulePlan[]>(LS_KEYS.schedulePlans, [])
     scheduleExecutions.value = loadLS<ScheduleExecution[]>(LS_KEYS.scheduleExecutions, [])
+    temperatures.value = loadLS<TemperatureRecord[]>(LS_KEYS.temperatures, [])
+    temperatureReminderSettings.value = loadLS<TemperatureReminderSettings>(LS_KEYS.temperatureReminder, {
+      enabled: false,
+      feverThreshold: 37.5,
+      highFeverThreshold: 38.5,
+      soundEnabled: true,
+      vibrateEnabled: true,
+      notifyOnFever: true,
+      notifyOnHighFever: true,
+      repeatReminderMinutes: 30,
+    })
   }
 } catch {
   syncChannel = null
@@ -156,6 +180,8 @@ export function persistData() {
   saveLS(LS_KEYS.familyComments, familyComments.value)
   saveLS(LS_KEYS.schedulePlans, schedulePlans.value)
   saveLS(LS_KEYS.scheduleExecutions, scheduleExecutions.value)
+  saveLS(LS_KEYS.temperatures, temperatures.value)
+  saveLS(LS_KEYS.temperatureReminder, temperatureReminderSettings.value)
   syncChannel?.postMessage({ type: 'sync', ts: Date.now() })
 }
 

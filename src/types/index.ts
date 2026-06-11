@@ -761,3 +761,75 @@ export interface ScheduleDeviationAnalysis {
   suggestions: string[]
   trend: 'improving' | 'worsening' | 'stable'
 }
+
+export type TemperatureSite = 'oral' | 'axillary' | 'rectal' | 'ear' | 'forehead'
+
+export const TEMPERATURE_SITE_LABELS: Record<TemperatureSite, string> = {
+  oral: '口腔',
+  axillary: '腋下',
+  rectal: '直肠',
+  ear: '耳温',
+  forehead: '额温',
+}
+
+export type TemperatureLevel = 'normal' | 'low_grade' | 'moderate' | 'high' | 'hyperthermia'
+
+export const TEMPERATURE_LEVEL_LABELS: Record<TemperatureLevel, string> = {
+  normal: '正常',
+  low_grade: '低热',
+  moderate: '中度发热',
+  high: '高热',
+  hyperthermia: '超高热',
+}
+
+export interface TemperatureRecord {
+  id: string
+  type: 'temperature'
+  babyId: string
+  timestamp: string
+  temperature: number
+  site: TemperatureSite
+  note: string
+  createdBy: string
+  caregiverId: string
+}
+
+export interface TemperatureReminderSettings {
+  enabled: boolean
+  feverThreshold: number
+  highFeverThreshold: number
+  soundEnabled?: boolean
+  vibrateEnabled?: boolean
+  notifyOnFever?: boolean
+  notifyOnHighFever?: boolean
+  repeatReminderMinutes?: number
+}
+
+export interface TemperatureDailyStats {
+  date: string
+  count: number
+  avgTemperature: number
+  maxTemperature: number
+  minTemperature: number
+  feverCount: number
+  highFeverCount: number
+  records: TemperatureRecord[]
+}
+
+export interface TemperatureWeeklyTrend {
+  labels: string[]
+  temperatures: number[]
+  avgTemperatures: number[]
+  maxTemperatures: number[]
+  minTemperatures: number[]
+}
+
+export interface TemperatureAnomaly {
+  id: string
+  recordId: string
+  level: 'warning' | 'danger'
+  temperature: number
+  timestamp: string
+  description: string
+}
+

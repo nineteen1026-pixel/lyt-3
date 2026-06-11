@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill, Target, CheckCircle, XCircle, Sun } from 'lucide-vue-next'
+import { Baby, Milk, Moon, Droplets, ChevronRight, ChevronDown, Plus, Users, Heart, Bell, CalendarDays, BookOpen, Pill, Target, CheckCircle, XCircle, Sun, ThermometerSun } from 'lucide-vue-next'
 import { useBabyCare } from '@/composables/useBabyCare'
 import { useReminder } from '@/composables/useReminder'
 import { useMedicine } from '@/composables/useMedicine'
+import { useTemperature } from '@/composables/useTemperature'
 import type { ActivityRecord, FeedingRecord, SleepRecord, DiaperRecord } from '@/types'
 
 const router = useRouter()
 const { baby, babies, currentBabyId, switchBaby, todaySummary, recentActivities, canAddRecord, getMemberName, needsJoin, currentSleepGoal, getSleepGoalWeeklyStats, getSleepGoalDailyAchievement, getDaySleepTimes } = useBabyCare()
 const { overdueReminders, pendingReminders, pendingMissed, refreshAll } = useReminder()
 const { alertCount: medicineAlertCount, medicines: currentMedicines, inventorySummary, lowStockMedicines } = useMedicine()
+const {
+  latestTemperature,
+  todayStats: temperatureTodayStats,
+  hasFeverToday,
+  hasHighFeverToday,
+  getTemperatureColor,
+  getTemperatureLevelLabel,
+} = useTemperature()
 
 const showBabyPicker = ref(false)
 
@@ -180,6 +189,43 @@ function handleSwitchBaby(id: string) {
           <p class="text-[10px] text-warm-300 dark:text-warm-200 mt-0.5">尿布更换</p>
         </div>
       </div>
+    </section>
+
+    <section v-if="hasHighFeverToday" class="mb-5">
+      <button @click="router.push('/health')" class="w-full text-left">
+        <div class="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-500/10 dark:to-rose-500/10 rounded-2xl p-4 border border-red-100 dark:border-red-500/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+              <ThermometerSun :size="20" class="text-red-500" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-red-600 dark:text-red-400">⚠️ 今日高热提醒</p>
+              <p class="text-[11px] text-red-500/80 dark:text-red-400/70 mt-0.5">
+                最高体温 {{ temperatureTodayStats.maxTemperature }}℃，共 {{ temperatureTodayStats.highFeverCount }} 次高热
+              </p>
+            </div>
+            <ChevronRight :size="16" class="text-red-400" />
+          </div>
+        </div>
+      </button>
+    </section>
+    <section v-else-if="hasFeverToday" class="mb-5">
+      <button @click="router.push('/health')" class="w-full text-left">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 rounded-2xl p-4 border border-amber-100 dark:border-amber-500/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+              <ThermometerSun :size="20" class="text-amber-500" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-amber-600 dark:text-amber-400">今日低热提醒</p>
+              <p class="text-[11px] text-amber-500/80 dark:text-amber-400/70 mt-0.5">
+                最新体温 {{ latestTemperature?.temperature.toFixed(1) }}℃，共 {{ temperatureTodayStats.feverCount }} 次发热
+              </p>
+            </div>
+            <ChevronRight :size="16" class="text-amber-400" />
+          </div>
+        </div>
+      </button>
     </section>
 
     <section v-if="currentSleepGoal" class="mb-6">
