@@ -117,6 +117,98 @@ export function useBabyCare() {
     return false
   }
 
+  function canEdit(id: string): boolean {
+    if (canEditRecord.value) return true
+    const createdByMe = feedings.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+      || sleeps.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+      || diapers.value.some(r => r.id === id && r.createdBy === currentUserId.value)
+    return createdByMe
+  }
+
+  function getRecordById(id: string): ActivityRecord | null {
+    return feedings.value.find(r => r.id === id)
+      || sleeps.value.find(r => r.id === id)
+      || diapers.value.find(r => r.id === id)
+      || null
+  }
+
+  function getRecordTimestamp(record: ActivityRecord): string {
+    if (record.type === 'sleep') return (record as SleepRecord).startTime
+    return (record as FeedingRecord | DiaperRecord).timestamp
+  }
+
+  function getRecordAnomalyLevel(record: ActivityRecord): 'normal' | 'warning' | 'danger' {
+    const sameTypeRecords = allActivities.value.filter(r => r.type === record.type && r.id !== record.id)
+    if (sameTypeRecords.length < 5) return 'normal'
+
+    if (record.type === 'feeding') {
+      const f = record as FeedingRecord
+      const amounts = sameTypeRecords.map(r => (r as FeedingRecord).amount).filter(v => v > 0)
+      const durations = sameTypeRecords.map(r => (r as FeedingRecord).duration).filter(v => v > 0)
+
+      if (amounts.length >= 5 && f.amount > 0) {
+        const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length
+        const stdAmount = Math.sqrt(amounts.reduce((a, v) => a + Math.pow(v - avgAmount, 2), 0) / amounts.length)
+        if (stdAmount > 0 && Math.abs(f.amount - avgAmount) > 2.5 * stdAmount) {
+          return f.amount > avgAmount ? 'warning' : 'danger'
+        }
+      }
+      if (durations.length >= 5 && f.duration > 0) {
+        const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length
+        const stdDuration = Math.sqrt(durations.reduce((a, v) => a + Math.pow(v - avgDuration, 2), 0) / durations.length)
+        if (stdDuration > 0 && Math.abs(f.duration - avgDuration) > 2.5 * stdDuration) {
+          return 'warning'
+        }
+      }
+    }
+
+    if (record.type === 'sleep') {
+      const s = record as SleepRecord
+      const durations = sameTypeRecords.map(r => {
+        const sr = r as SleepRecord
+        return (new Date(sr.endTime).getTime() - new Date(sr.startTime).getTime()) / 60000
+      }).filter(v => v > 0)
+
+      if (durations.length >= 5) {
+        const duration = (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / 60000
+        const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length
+        const stdDuration = Math.sqrt(durations.reduce((a, v) => a + Math.pow(v - avgDuration, 2), 0) / durations.length)
+        if (stdDuration > 0 && Math.abs(duration - avgDuration) > 2.5 * stdDuration) {
+          return duration < avgDuration ? 'warning' : 'info' as 'warning'
+        }
+      }
+      if (s.quality === 'fussy') {
+        return 'warning'
+      }
+    }
+
+    if (record.type === 'diaper') {
+      const timestamps = sameTypeRecords.map(r => new Date((r as DiaperRecord).timestamp).getTime())
+      if (timestamps.length >= 5) {
+        timestamps.sort((a, b) => a - b)
+        const intervals: number[] = []
+        for (let i = 1; i < timestamps.length; i++) {
+          intervals.push((timestamps[i] - timestamps[i - 1]) / 60000)
+        }
+        if (intervals.length >= 4) {
+          const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length
+          const recordTime = new Date((record as DiaperRecord).timestamp).getTime()
+          const prevRecord = sameTypeRecords
+            .map(r => new Date((r as DiaperRecord).timestamp).getTime())
+            .filter(t => t < recordTime)
+            .sort((a, b) => b - a)[0]
+          if (prevRecord) {
+            const gap = (recordTime - prevRecord) / 60000
+            if (gap < avgInterval * 0.2) return 'warning'
+            if (gap > avgInterval * 3) return 'danger'
+          }
+        }
+      }
+    }
+
+    return 'normal'
+  }
+
   function deleteRecord(id: string) {
     if (!canDelete(id)) return false
     feedings.value = feedings.value.filter(r => r.id !== id)
@@ -124,6 +216,49 @@ export function useBabyCare() {
     diapers.value = diapers.value.filter(r => r.id !== id)
     persistData()
     return true
+  }
+
+  function batchDeleteRecords(ids: string[]) {
+    const idSet = new Set(ids)
+    const deletable = ids.filter(id => canDelete(id))
+    const delSet = new Set(deletable)
+    feedings.value = feedings.value.filter(r => !delSet.has(r.id))
+    sleeps.value = sleeps.value.filter(r => !delSet.has(r.id))
+    diapers.value = diapers.value.filter(r => !delSet.has(r.id))
+    persistData()
+    return deletable.length
+  }
+
+  function updateRecordNote(id: string, note: string) {
+    if (!canEditRecord.value) return false
+    const fi = feedings.value.findIndex(r => r.id === id)
+    if (fi >= 0) {
+      feedings.value[fi] = { ...feedings.value[fi], note }
+      persistData()
+      return true
+    }
+    const si = sleeps.value.findIndex(r => r.id === id)
+    if (si >= 0) {
+      sleeps.value[si] = { ...sleeps.value[si], note }
+      persistData()
+      return true
+    }
+    const di = diapers.value.findIndex(r => r.id === id)
+    if (di >= 0) {
+      diapers.value[di] = { ...diapers.value[di], note }
+      persistData()
+      return true
+    }
+    return false
+  }
+
+  function batchUpdateNotes(ids: string[], note: string) {
+    if (!canEditRecord.value) return 0
+    let count = 0
+    for (const id of ids) {
+      if (updateRecordNote(id, note)) count++
+    }
+    return count
   }
 
   function updateSettings(data: Partial<AppSettings>) {
@@ -484,9 +619,13 @@ export function useBabyCare() {
     canViewRecord,
     canExportData,
     canDelete,
+    canEdit,
     getMemberName,
     needsJoin,
     isFamilyMember,
+    getRecordById,
+    getRecordTimestamp,
+    getRecordAnomalyLevel,
     switchBaby,
     addBaby,
     updateBaby,
@@ -496,6 +635,9 @@ export function useBabyCare() {
     addSleep,
     addDiaper,
     deleteRecord,
+    batchDeleteRecords,
+    updateRecordNote,
+    batchUpdateNotes,
     updateSettings,
     getDaySummary,
     getWeekData,
