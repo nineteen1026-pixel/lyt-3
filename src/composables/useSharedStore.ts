@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, FamilyMember, FamilyRole, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord, SleepGoal, PhotoDiaryEntry, Milestone, FamilyComment, SchedulePlan, ScheduleExecution } from '@/types'
 import { ROLE_PERMISSIONS } from '@/types'
 import { defaultSettings } from '@/data/mock'
 
@@ -12,6 +12,7 @@ const LS_KEYS = {
   growths: 'baby-care:growths',
   vaccines: 'baby-care:vaccines',
   checkups: 'baby-care:checkups',
+  medicalVisits: 'baby-care:medical-visits',
   settings: 'baby-care:settings',
   reminders: 'baby-care:reminders',
   missedRecords: 'baby-care:missed-records',
@@ -82,6 +83,7 @@ export const diapers = ref<DiaperRecord[]>(loadLS<DiaperRecord[]>(LS_KEYS.diaper
 export const growths = ref<GrowthRecord[]>(loadLS<GrowthRecord[]>(LS_KEYS.growths, []))
 export const vaccines = ref<VaccineRecord[]>(loadLS<VaccineRecord[]>(LS_KEYS.vaccines, []))
 export const checkups = ref<CheckupRecord[]>(loadLS<CheckupRecord[]>(LS_KEYS.checkups, []))
+export const medicalVisits = ref<MedicalVisitRecord[]>(loadLS<MedicalVisitRecord[]>(LS_KEYS.medicalVisits, []))
 export const settings = ref<AppSettings>(loadLS<AppSettings>(LS_KEYS.settings, defaultSettings))
 export const reminders = ref<ReminderItem[]>(loadLS<ReminderItem[]>(LS_KEYS.reminders, []))
 export const missedRecords = ref<MissedRecord[]>(loadLS<MissedRecord[]>(LS_KEYS.missedRecords, []))
@@ -112,6 +114,7 @@ try {
     growths.value = loadLS<GrowthRecord[]>(LS_KEYS.growths, [])
     vaccines.value = loadLS<VaccineRecord[]>(LS_KEYS.vaccines, [])
     checkups.value = loadLS<CheckupRecord[]>(LS_KEYS.checkups, [])
+    medicalVisits.value = loadLS<MedicalVisitRecord[]>(LS_KEYS.medicalVisits, [])
     settings.value = loadLS<AppSettings>(LS_KEYS.settings, defaultSettings)
     reminders.value = loadLS<ReminderItem[]>(LS_KEYS.reminders, [])
     missedRecords.value = loadLS<MissedRecord[]>(LS_KEYS.missedRecords, [])
@@ -139,6 +142,7 @@ export function persistData() {
   saveLS(LS_KEYS.growths, growths.value)
   saveLS(LS_KEYS.vaccines, vaccines.value)
   saveLS(LS_KEYS.checkups, checkups.value)
+  saveLS(LS_KEYS.medicalVisits, medicalVisits.value)
   saveLS(LS_KEYS.settings, settings.value)
   saveLS(LS_KEYS.reminders, reminders.value)
   saveLS(LS_KEYS.missedRecords, missedRecords.value)

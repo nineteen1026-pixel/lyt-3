@@ -159,7 +159,26 @@ export interface CheckupRecord {
   caregiverId: string
 }
 
-export type HealthRecord = GrowthRecord | VaccineRecord | CheckupRecord
+export interface MedicalVisitRecord {
+  id: string
+  type: 'medical_visit'
+  babyId: string
+  timestamp: string
+  hospital: string
+  doctor?: string
+  department?: string
+  symptoms: string
+  diagnosis: string
+  prescription: string
+  followUpDate?: string
+  attachments?: string[]
+  temperature?: number
+  note: string
+  createdBy: string
+  caregiverId: string
+}
+
+export type HealthRecord = GrowthRecord | VaccineRecord | CheckupRecord | MedicalVisitRecord
 
 export type ActivityRecord = FeedingRecord | SleepRecord | DiaperRecord
 

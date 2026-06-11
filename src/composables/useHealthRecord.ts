@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import type { GrowthRecord, VaccineRecord, CheckupRecord } from '@/types'
+import type { GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord } from '@/types'
 import {
-  growths, vaccines, checkups, currentBabyId,
+  growths, vaccines, checkups, medicalVisits, currentBabyId,
   currentUserId, persistData, genId, hasPermission,
   canAddRecord, canDeleteRecord, canEditRecord, getMemberName,
 } from './useSharedStore'
@@ -23,6 +23,18 @@ export function useHealthRecord() {
     checkups.value
       .filter(r => r.babyId === currentBabyId.value)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  )
+
+  const currentMedicalVisits = computed(() =>
+    medicalVisits.value
+      .filter(r => r.babyId === currentBabyId.value)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  )
+
+  const upcomingFollowUps = computed(() =>
+    currentMedicalVisits.value
+      .filter(v => v.followUpDate && new Date(v.followUpDate) >= new Date(new Date().setHours(0, 0, 0, 0)))
+      .sort((a, b) => new Date(a.followUpDate!).getTime() - new Date(b.followUpDate!).getTime())
   )
 
   const latestGrowth = computed<GrowthRecord | undefined>(() => {
@@ -135,6 +147,37 @@ export function useHealthRecord() {
     return true
   }
 
+  function addMedicalVisit(record: Omit<MedicalVisitRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
+    if (!canAddRecord.value) return false
+    if (!currentBabyId.value) return false
+    medicalVisits.value.unshift({
+      ...record,
+      id: genId(),
+      type: 'medical_visit',
+      babyId: currentBabyId.value,
+      createdBy: currentUserId.value,
+      caregiverId: record.caregiverId || currentUserId.value,
+    })
+    persistData()
+    return true
+  }
+
+  function updateMedicalVisit(id: string, data: Partial<MedicalVisitRecord>) {
+    if (!canEditRecord.value) return false
+    const idx = medicalVisits.value.findIndex(r => r.id === id)
+    if (idx < 0) return false
+    medicalVisits.value[idx] = { ...medicalVisits.value[idx], ...data }
+    persistData()
+    return true
+  }
+
+  function deleteMedicalVisit(id: string) {
+    if (!canDeleteRecord.value) return false
+    medicalVisits.value = medicalVisits.value.filter(r => r.id !== id)
+    persistData()
+    return true
+  }
+
   const growthTrend = computed(() => {
     const data = currentGrowths.value
     if (data.length === 0) return { labels: [], heights: [], weights: [], headCircumferences: [] }
@@ -167,6 +210,8 @@ export function useHealthRecord() {
     growths: currentGrowths,
     vaccines: currentVaccines,
     checkups: currentCheckups,
+    medicalVisits: currentMedicalVisits,
+    upcomingFollowUps,
     latestGrowth,
     upcomingVaccines,
     doneVaccines,
@@ -186,5 +231,8 @@ export function useHealthRecord() {
     addCheckup,
     updateCheckup,
     deleteCheckup,
+    addMedicalVisit,
+    updateMedicalVisit,
+    deleteMedicalVisit,
   }
 }

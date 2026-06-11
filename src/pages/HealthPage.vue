@@ -3,8 +3,9 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeft, Ruler, Syringe, Stethoscope, TrendingUp,
-  Plus, Check, X, Calendar, MapPin, User, ChevronDown, ChevronRight,
-  Activity, Heart, Clock,
+  Plus, Check, X, Calendar, MapPin, User, ChevronDown,
+  Activity, Heart, Clock, FileText, Pill, ThermometerSun,
+  Building2, AlertCircle, Image as ImageIcon,
 } from 'lucide-vue-next'
 import { useHealthRecord } from '@/composables/useHealthRecord'
 import { useBabyCare } from '@/composables/useBabyCare'
@@ -13,10 +14,10 @@ import type { VaccineRecord } from '@/types'
 
 const router = useRouter()
 const {
-  growths, vaccines, checkups, latestGrowth,
-  upcomingVaccines, doneVaccines,
+  growths, vaccines, checkups, medicalVisits, latestGrowth,
+  upcomingVaccines, doneVaccines, upcomingFollowUps,
   growthTrend, weightGainRate,
-  canAddRecord, addGrowth, addVaccine, addCheckup,
+  canAddRecord, addGrowth, addVaccine, addCheckup, addMedicalVisit,
   markVaccineDone, getMemberName,
 } = useHealthRecord()
 const { settings } = useBabyCare()
@@ -37,19 +38,21 @@ function selectCaregiver(id: string) {
   showCaregiverPicker.value = false
 }
 
-type TabKey = 'growth' | 'vaccine' | 'checkup' | 'trend'
+type TabKey = 'growth' | 'vaccine' | 'checkup' | 'medical' | 'trend'
 const activeTab = ref<TabKey>('growth')
 
 const tabs: { key: TabKey; label: string; icon: typeof Ruler }[] = [
   { key: 'growth', label: '身高体重', icon: Ruler },
   { key: 'vaccine', label: '疫苗计划', icon: Syringe },
   { key: 'checkup', label: '体检记录', icon: Stethoscope },
+  { key: 'medical', label: '就医记录', icon: FileText },
   { key: 'trend', label: '趋势曲线', icon: TrendingUp },
 ]
 
 const showAddGrowth = ref(false)
 const showAddVaccine = ref(false)
 const showAddCheckup = ref(false)
+const showAddMedicalVisit = ref(false)
 
 const newGrowth = ref({ height: 67, weight: 7.5, headCircumference: 42, note: '' })
 const newGrowthDate = ref(new Date().toISOString().slice(0, 10))
@@ -57,6 +60,20 @@ const newGrowthDate = ref(new Date().toISOString().slice(0, 10))
 const newVaccine = ref({ name: '', plannedDate: new Date().toISOString().slice(0, 10), location: '社区卫生中心', note: '' })
 const newCheckup = ref({ hospital: '', doctor: '', items: '' as string, result: '', note: '' })
 const newCheckupDate = ref(new Date().toISOString().slice(0, 10))
+
+const newMedicalVisit = ref({
+  hospital: '',
+  doctor: '',
+  department: '',
+  symptoms: '',
+  diagnosis: '',
+  prescription: '',
+  followUpDate: '',
+  temperature: '' as string | number,
+  note: '',
+})
+const newMedicalVisitDate = ref(new Date().toISOString().slice(0, 10))
+const newAttachments = ref<string[]>([])
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -113,6 +130,54 @@ function handleAddCheckup() {
   })
   showAddCheckup.value = false
   newCheckup.value = { hospital: '', doctor: '', items: '', result: '', note: '' }
+}
+
+function handleAddMedicalVisit() {
+  const temp = Number(newMedicalVisit.value.temperature)
+  addMedicalVisit({
+    timestamp: new Date(newMedicalVisitDate.value).toISOString(),
+    hospital: newMedicalVisit.value.hospital,
+    doctor: newMedicalVisit.value.doctor || undefined,
+    department: newMedicalVisit.value.department || undefined,
+    symptoms: newMedicalVisit.value.symptoms,
+    diagnosis: newMedicalVisit.value.diagnosis,
+    prescription: newMedicalVisit.value.prescription,
+    followUpDate: newMedicalVisit.value.followUpDate ? new Date(newMedicalVisit.value.followUpDate).toISOString() : undefined,
+    temperature: temp > 0 ? temp : undefined,
+    attachments: newAttachments.value.length > 0 ? [...newAttachments.value] : undefined,
+    note: newMedicalVisit.value.note,
+    caregiverId: caregiverId.value,
+  })
+  showAddMedicalVisit.value = false
+  newMedicalVisit.value = {
+    hospital: '',
+    doctor: '',
+    department: '',
+    symptoms: '',
+    diagnosis: '',
+    prescription: '',
+    followUpDate: '',
+    temperature: '',
+    note: '',
+  }
+  newAttachments.value = []
+}
+
+function handleAddAttachment() {
+  const id = Date.now().toString(36)
+  const url = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=medical%20document%20prescription%20hospital&image_size=square`
+  newAttachments.value.push(url)
+}
+
+function removeAttachment(index: number) {
+  newAttachments.value.splice(index, 1)
+}
+
+function getDaysUntilDate(iso: string) {
+  const diff = (new Date(iso).getTime() - Date.now()) / 86400000
+  if (diff < 0) return `已逾期${Math.abs(Math.round(diff))}天`
+  if (diff === 0) return '今天'
+  return `${Math.round(diff)}天后`
 }
 
 function handleMarkDone(vaccine: VaccineRecord) {
@@ -602,6 +667,266 @@ const trendData = computed(() => {
           </div>
           <p class="text-xs text-warm-400 dark:text-warm-100">{{ record.result }}</p>
           <p v-if="record.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-1">{{ record.note }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="activeTab === 'medical'">
+      <div v-if="upcomingFollowUps.length > 0" class="mb-4">
+        <h2 class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-2 flex items-center gap-1">
+          <AlertCircle :size="14" class="text-amber-500" />
+          待复诊提醒
+        </h2>
+        <div class="space-y-2">
+          <div
+            v-for="visit in upcomingFollowUps"
+            :key="'fu' + visit.id"
+            class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 rounded-xl px-4 py-3 border border-amber-100 dark:border-amber-500/20"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold text-warm-500 dark:text-cream-100">{{ visit.hospital }}</p>
+                <p class="text-[10px] text-warm-300 dark:text-warm-200">复诊：{{ formatDate(visit.followUpDate!) }}</p>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                {{ getDaysUntilDate(visit.followUpDate!) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold text-warm-400 dark:text-warm-100">就医记录</h2>
+        <button
+          v-if="canAddRecord"
+          @click="showAddMedicalVisit = !showAddMedicalVisit"
+          class="flex items-center gap-1 text-xs font-bold text-peach-400 hover:text-peach-500"
+        >
+          <Plus :size="14" /> 添加
+        </button>
+      </div>
+
+      <div v-if="showAddMedicalVisit" class="bg-white dark:bg-[#2a1f1a] rounded-2xl p-4 mb-3 shadow-sm border border-cream-200 dark:border-warm-500/20">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">医院</label>
+            <div class="relative">
+              <Building2 :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-warm-300" />
+              <input v-model="newMedicalVisit.hospital" type="text" placeholder="医院名称"
+                class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-9 pr-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">科室</label>
+            <input v-model="newMedicalVisit.department" type="text" placeholder="如：儿科"
+              class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">医生</label>
+            <div class="relative">
+              <User :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-warm-300" />
+              <input v-model="newMedicalVisit.doctor" type="text" placeholder="医生姓名"
+                class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-9 pr-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">就诊日期</label>
+            <div class="relative">
+              <Calendar :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-warm-300" />
+              <input v-model="newMedicalVisitDate" type="date"
+                class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-9 pr-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">体温 (℃)</label>
+            <div class="relative">
+              <ThermometerSun :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400" />
+              <input v-model.number="newMedicalVisit.temperature" type="number" min="35" max="42" step="0.1" placeholder="36.5"
+                class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-9 pr-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">复诊日期</label>
+            <div class="relative">
+              <Clock :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-warm-300" />
+              <input v-model="newMedicalVisit.followUpDate" type="date"
+                class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl pl-9 pr-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+            </div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">症状描述</label>
+          <textarea v-model="newMedicalVisit.symptoms" rows="2" placeholder="如：发热、咳嗽、流鼻涕..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300 resize-none"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">诊断结果</label>
+          <textarea v-model="newMedicalVisit.diagnosis" rows="2" placeholder="医生诊断结果..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300 resize-none"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block flex items-center gap-1">
+            <Pill :size="12" class="text-rose-400" />
+            处方/用药
+          </label>
+          <textarea v-model="newMedicalVisit.prescription" rows="3" placeholder="药品名称、用法用量..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300 resize-none"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block flex items-center gap-1">
+            <ImageIcon :size="12" class="text-blue-400" />
+            附件照片
+          </label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <div
+              v-for="(url, idx) in newAttachments"
+              :key="idx"
+              class="relative w-16 h-16 rounded-lg overflow-hidden bg-cream-100 dark:bg-warm-500/10"
+            >
+              <img :src="url" class="w-full h-full object-cover" alt="附件" />
+              <button
+                @click="removeAttachment(idx)"
+                class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center"
+              >
+                <X :size="10" />
+              </button>
+            </div>
+            <button
+              v-if="newAttachments.length < 5"
+              @click="handleAddAttachment"
+              class="w-16 h-16 rounded-lg border-2 border-dashed border-cream-200 dark:border-warm-500/20 flex flex-col items-center justify-center text-warm-300 hover:border-peach-300 hover:text-peach-400 transition-colors"
+            >
+              <Plus :size="16" />
+              <span class="text-[10px]">添加</span>
+            </button>
+          </div>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">最多上传5张处方、检查报告等照片</p>
+        </div>
+        <div v-if="familyMembers.length > 0" class="mb-3 relative">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
+          <button
+            type="button"
+            @click="showCaregiverPicker = !showCaregiverPicker"
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-peach-300"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-5 h-5 rounded-full bg-peach-100 dark:bg-peach-500/20 flex items-center justify-center">
+                <User :size="10" class="text-peach-400" />
+              </div>
+              <span class="text-xs text-warm-500 dark:text-cream-100 truncate">{{ caregiverName }}</span>
+            </div>
+            <ChevronDown :size="12" class="text-warm-300 dark:text-warm-200 transition-transform shrink-0" :class="{ 'rotate-180': showCaregiverPicker }" />
+          </button>
+          <div
+            v-if="showCaregiverPicker"
+            class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2a1f1a] border border-cream-200 dark:border-warm-500/20 rounded-xl shadow-lg z-10 py-1 max-h-40 overflow-y-auto"
+          >
+            <button
+              v-for="member in familyMembers"
+              :key="member.id"
+              type="button"
+              @click="selectCaregiver(member.id)"
+              class="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-cream-50 dark:hover:bg-warm-500/10 transition-colors"
+              :class="caregiverId === member.id ? 'bg-peach-50 dark:bg-peach-500/10 text-peach-500' : 'text-warm-500 dark:text-cream-100'"
+            >
+              <div class="w-5 h-5 rounded-full bg-cream-100 dark:bg-warm-500/10 flex items-center justify-center">
+                <User :size="10" class="text-warm-400" />
+              </div>
+              <span class="truncate">{{ member.name }}</span>
+              <Check v-if="caregiverId === member.id" :size="12" class="ml-auto text-peach-400 shrink-0" />
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">备注</label>
+          <input v-model="newMedicalVisit.note" type="text" placeholder="可选备注..."
+            class="w-full bg-cream-50 dark:bg-warm-500/10 border border-cream-200 dark:border-warm-500/20 rounded-xl px-3 py-2 text-sm text-warm-500 dark:text-cream-100 focus:outline-none focus:ring-2 focus:ring-peach-300" />
+        </div>
+        <div class="flex gap-2">
+          <button @click="showAddMedicalVisit = false" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-warm-300 dark:text-warm-200 bg-cream-100 dark:bg-warm-500/10">取消</button>
+          <button @click="handleAddMedicalVisit" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-peach-400 hover:bg-peach-500 shadow-md shadow-peach-200 dark:shadow-peach-500/20">保存</button>
+        </div>
+      </div>
+
+      <div v-if="medicalVisits.length === 0" class="text-center py-10">
+        <FileText :size="32" class="mx-auto text-warm-300 dark:text-warm-200 mb-2" />
+        <p class="text-sm text-warm-300 dark:text-warm-200">暂无就医记录</p>
+      </div>
+
+      <div class="space-y-3">
+        <div
+          v-for="visit in medicalVisits"
+          :key="visit.id"
+          class="bg-white dark:bg-[#2a1f1a] rounded-2xl px-4 py-4 shadow-sm"
+        >
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <Building2 :size="12" class="text-peach-400" />
+                <span class="text-sm font-bold text-warm-500 dark:text-cream-100">{{ visit.hospital }}</span>
+                <span v-if="visit.department" class="text-[10px] px-1.5 py-0.5 rounded bg-cream-100 dark:bg-warm-500/10 text-warm-400">{{ visit.department }}</span>
+              </div>
+              <div class="flex items-center gap-3 text-[10px] text-warm-300 dark:text-warm-200">
+                <span class="flex items-center gap-0.5"><Calendar :size="10" /> {{ formatDate(visit.timestamp) }}</span>
+                <span v-if="visit.doctor" class="flex items-center gap-0.5"><User :size="10" /> {{ visit.doctor }}</span>
+                <span v-if="visit.temperature" class="flex items-center gap-0.5"><ThermometerSun :size="10" /> {{ visit.temperature }}℃</span>
+              </div>
+            </div>
+            <span class="text-[10px] text-warm-300 dark:text-warm-200">照护: {{ getMemberName(visit.caregiverId) }}</span>
+          </div>
+
+          <div v-if="visit.followUpDate" class="mb-2 px-3 py-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-100 dark:border-amber-500/20">
+            <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <Clock :size="10" />
+              复诊日期：{{ formatDate(visit.followUpDate) }}
+              <span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20">{{ getDaysUntilDate(visit.followUpDate) }}</span>
+            </span>
+          </div>
+
+          <div class="space-y-2">
+            <div>
+              <p class="text-[10px] font-bold text-warm-300 dark:text-warm-200 mb-0.5 flex items-center gap-1">
+                <AlertCircle :size="10" /> 症状
+              </p>
+              <p class="text-xs text-warm-500 dark:text-cream-100">{{ visit.symptoms }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold text-warm-300 dark:text-warm-200 mb-0.5 flex items-center gap-1">
+                <FileText :size="10" /> 诊断
+              </p>
+              <p class="text-xs text-warm-500 dark:text-cream-100">{{ visit.diagnosis }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold text-warm-300 dark:text-warm-200 mb-0.5 flex items-center gap-1">
+                <Pill :size="10" /> 处方
+              </p>
+              <p class="text-xs text-warm-500 dark:text-cream-100 whitespace-pre-line">{{ visit.prescription }}</p>
+            </div>
+          </div>
+
+          <div v-if="visit.attachments && visit.attachments.length > 0" class="mt-2">
+            <p class="text-[10px] font-bold text-warm-300 dark:text-warm-200 mb-1 flex items-center gap-1">
+              <ImageIcon :size="10" /> 附件 ({{ visit.attachments.length }})
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <div
+                v-for="(url, idx) in visit.attachments"
+                :key="idx"
+                class="w-14 h-14 rounded-lg overflow-hidden bg-cream-100 dark:bg-warm-500/10"
+              >
+                <img :src="url" class="w-full h-full object-cover" alt="附件照片" />
+              </div>
+            </div>
+          </div>
+
+          <p v-if="visit.note" class="text-[10px] text-warm-300 dark:text-warm-200 mt-2 pt-2 border-t border-cream-100 dark:border-warm-500/10">
+            备注：{{ visit.note }}
+          </p>
         </div>
       </div>
     </section>

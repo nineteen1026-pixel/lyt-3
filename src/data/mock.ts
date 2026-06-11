@@ -1,4 +1,4 @@
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
 
 const now = new Date()
 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -183,4 +183,10 @@ export const mockStockChanges: StockChangeRecord[] = [
   { id: 'sc7', medicineId: 'med6', babyId: DEFAULT_BABY_ID, changeType: 'restock', quantity: 120, previousQuantity: 0, newQuantity: 120, previousExpiryDate: undefined, newExpiryDate: d(730), note: '购入M号纸尿裤一大包', createdBy: DEFAULT_USER_ID, timestamp: d(-20, 14, 0) },
   { id: 'sc8', medicineId: 'med7', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 3, newQuantity: 2, note: '日常消耗', createdBy: DEFAULT_USER_ID, timestamp: d(0, 10, 0) },
   { id: 'sc9', medicineId: 'med12', babyId: DEFAULT_BABY_ID, changeType: 'usage', quantity: -1, previousQuantity: 1, newQuantity: 0, note: '最后一点用完', createdBy: DEFAULT_USER_ID, timestamp: d(-5, 20, 0) },
+]
+
+export const mockMedicalVisits: MedicalVisitRecord[] = [
+  { id: 'mv1', type: 'medical_visit', babyId: DEFAULT_BABY_ID, timestamp: d(-10, 9, 0), hospital: '市儿童医院', doctor: '陈医生', department: '儿科急诊', symptoms: '发热38.5℃，咳嗽，流鼻涕，精神尚可', diagnosis: '上呼吸道感染，病毒性感冒', prescription: '1. 泰诺林对乙酰氨基酚滴剂 1ml/次，发热超过38.5℃时使用\n2. 生理盐水滴鼻剂 每日3次\n3. 多饮水，注意休息', followUpDate: d(4, 9, 0), temperature: 38.5, note: '夜间容易哭闹，注意监测体温', createdBy: DEFAULT_USER_ID, caregiverId: DEFAULT_USER_ID },
+  { id: 'mv2', type: 'medical_visit', babyId: DEFAULT_BABY_ID, timestamp: d(-45, 14, 0), hospital: '市妇幼保健院', doctor: '刘医生', department: '消化内科', symptoms: '腹泻，每日5-6次，黄色稀便，无呕吐', diagnosis: '消化不良，肠道菌群失调', prescription: '1. 妈咪爱益生菌 1袋/次，每日2次\n2. 蒙脱石散 1/3袋/次，每日3次\n3. 调整喂养量，少量多餐', followUpDate: d(-38, 14, 0), temperature: 36.8, note: '服药后2天症状好转，已复诊确认痊愈', createdBy: DEFAULT_USER_ID, caregiverId: DEFAULT_USER_ID },
+  { id: 'mv3', type: 'medical_visit', babyId: DEFAULT_BABY_ID, timestamp: d(-90, 10, 0), hospital: '社区卫生服务中心', doctor: '赵医生', department: '全科', symptoms: '皮肤发红，颈部和腹股沟处有皮疹，哭闹', diagnosis: '尿布疹，间擦疹', prescription: '1. 尤卓尔氧化锌软膏 每次换尿布后涂抹\n2. 保持皮肤清洁干燥\n3. 增加透气时间，减少纸尿裤穿着时间', temperature: 36.5, note: '3天后好转，一周后痊愈', createdBy: DEFAULT_USER_ID, caregiverId: DEFAULT_USER_ID },
 ]
