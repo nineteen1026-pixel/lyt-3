@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { Home, Clock, Bell, Heart, BookOpen, Camera } from 'lucide-vue-next'
+import { Home, Clock, Bell, Heart, BookOpen, Camera, CalendarDays } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 
 const tabs = [
   { name: 'dashboard', path: '/', icon: Home, label: '首页' },
+  { name: 'care-calendar', path: '/care-calendar', icon: CalendarDays, label: '日历' },
   { name: 'timeline', path: '/timeline', icon: Camera, label: '时光' },
   { name: 'history', path: '/history', icon: Clock, label: '记录' },
   { name: 'knowledge', path: '/knowledge', icon: BookOpen, label: '指南' },
-  { name: 'health', path: '/health', icon: Heart, label: '健康' },
 ]
 
 function isActive(path: string) {

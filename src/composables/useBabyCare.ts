@@ -61,7 +61,7 @@ export function useBabyCare() {
     persistData()
   }
 
-  function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
+  function addFeeding(record: Omit<FeedingRecord, 'id' | 'type' | 'babyId' | 'createdBy' | 'caregiverId'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     feedings.value.unshift({
@@ -71,12 +71,12 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
       caregiverId: record.caregiverId || currentUserId.value,
-    })
+    } as FeedingRecord)
     persistData()
     return true
   }
 
-  function addSleep(record: Omit<SleepRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
+  function addSleep(record: Omit<SleepRecord, 'id' | 'type' | 'babyId' | 'createdBy' | 'caregiverId'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     sleeps.value.unshift({
@@ -86,12 +86,12 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
       caregiverId: record.caregiverId || currentUserId.value,
-    })
+    } as SleepRecord)
     persistData()
     return true
   }
 
-  function addDiaper(record: Omit<DiaperRecord, 'id' | 'type' | 'babyId' | 'createdBy'> & { caregiverId?: string }) {
+  function addDiaper(record: Omit<DiaperRecord, 'id' | 'type' | 'babyId' | 'createdBy' | 'caregiverId'> & { caregiverId?: string }) {
     if (!canAddRecord.value) return false
     if (!currentBabyId.value) return false
     diapers.value.unshift({
@@ -101,7 +101,7 @@ export function useBabyCare() {
       babyId: currentBabyId.value,
       createdBy: currentUserId.value,
       caregiverId: record.caregiverId || currentUserId.value,
-    })
+    } as DiaperRecord)
     persistData()
     return true
   }
@@ -468,6 +468,9 @@ export function useBabyCare() {
     feedings,
     sleeps,
     diapers,
+    currentFeedings,
+    currentSleeps,
+    currentDiapers,
     settings,
     sleepGoals,
     currentSleepGoal,
