@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
-import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, AppSettings, Family, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
+import type { Baby, FeedingRecord, SleepRecord, DiaperRecord, GrowthRecord, VaccineRecord, CheckupRecord, MedicalVisitRecord, AppSettings, Family, ReminderItem, MissedRecord, Medicine, MedicineUsage, StockChangeRecord } from '@/types'
 import {
-  family, babies, feedings, sleeps, diapers, growths, vaccines, checkups,
+  family, babies, feedings, sleeps, diapers, growths, vaccines, checkups, medicalVisits,
   settings, reminders, missedRecords, medicines, medicineUsages, stockChanges,
   currentBabyId, persistData, genId,
 } from './useSharedStore'
@@ -17,6 +17,7 @@ export interface BackupData {
   growths: GrowthRecord[]
   vaccines: VaccineRecord[]
   checkups: CheckupRecord[]
+  medicalVisits: MedicalVisitRecord[]
   settings: AppSettings
   reminders: ReminderItem[]
   missedRecords: MissedRecord[]
@@ -57,6 +58,7 @@ const DATA_KEYS: { key: keyof BackupData; label: string }[] = [
   { key: 'growths', label: '成长记录' },
   { key: 'vaccines', label: '疫苗记录' },
   { key: 'checkups', label: '体检记录' },
+  { key: 'medicalVisits', label: '就医记录' },
   { key: 'reminders', label: '提醒事项' },
   { key: 'missedRecords', label: '遗漏记录' },
   { key: 'medicines', label: '药品信息' },
@@ -89,6 +91,7 @@ function getLocalData(): BackupData {
     growths: growths.value,
     vaccines: vaccines.value,
     checkups: checkups.value,
+    medicalVisits: medicalVisits.value,
     settings: settings.value,
     reminders: reminders.value,
     missedRecords: missedRecords.value,
@@ -281,6 +284,7 @@ export function useDataRecovery() {
         growths.value = data.growths || []
         vaccines.value = data.vaccines || []
         checkups.value = data.checkups || []
+        medicalVisits.value = data.medicalVisits || []
         settings.value = data.settings
         reminders.value = data.reminders || []
         missedRecords.value = data.missedRecords || []
@@ -296,6 +300,7 @@ export function useDataRecovery() {
           ...growths.value.map(r => r.id),
           ...vaccines.value.map(r => r.id),
           ...checkups.value.map(r => r.id),
+          ...medicalVisits.value.map(r => r.id),
           ...reminders.value.map(r => r.id),
           ...missedRecords.value.map(r => r.id),
           ...medicines.value.map(r => r.id),
@@ -326,6 +331,10 @@ export function useDataRecovery() {
         if (data.checkups) {
           const merged = data.checkups.filter(r => !existingIds.has(r.id))
           checkups.value = [...merged, ...checkups.value]
+        }
+        if (data.medicalVisits) {
+          const merged = data.medicalVisits.filter(r => !existingIds.has(r.id))
+          medicalVisits.value = [...merged, ...medicalVisits.value]
         }
         if (data.reminders) {
           const merged = data.reminders.filter(r => !existingIds.has(r.id))

@@ -74,6 +74,7 @@ const newMedicalVisit = ref({
 })
 const newMedicalVisitDate = ref(new Date().toISOString().slice(0, 10))
 const newAttachments = ref<string[]>([])
+const attachmentInput = ref<HTMLInputElement | null>(null)
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -164,9 +165,27 @@ function handleAddMedicalVisit() {
 }
 
 function handleAddAttachment() {
-  const id = Date.now().toString(36)
-  const url = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=medical%20document%20prescription%20hospital&image_size=square`
-  newAttachments.value.push(url)
+  attachmentInput.value?.click()
+}
+
+function handleAttachmentSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files || files.length === 0) return
+  const remaining = 5 - newAttachments.value.length
+  const toProcess = Array.from(files).slice(0, remaining)
+  for (const file of toProcess) {
+    if (!file.type.startsWith('image/')) continue
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string
+      if (base64) {
+        newAttachments.value.push(base64)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+  input.value = ''
 }
 
 function removeAttachment(index: number) {
@@ -782,6 +801,15 @@ const trendData = computed(() => {
             <ImageIcon :size="12" class="text-blue-400" />
             附件照片
           </label>
+          <input
+            ref="attachmentInput"
+            type="file"
+            accept="image/*"
+            multiple
+            capture="environment"
+            class="hidden"
+            @change="handleAttachmentSelected"
+          />
           <div class="flex flex-wrap gap-2 mb-2">
             <div
               v-for="(url, idx) in newAttachments"
@@ -790,6 +818,7 @@ const trendData = computed(() => {
             >
               <img :src="url" class="w-full h-full object-cover" alt="附件" />
               <button
+                type="button"
                 @click="removeAttachment(idx)"
                 class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center"
               >
@@ -798,14 +827,15 @@ const trendData = computed(() => {
             </div>
             <button
               v-if="newAttachments.length < 5"
+              type="button"
               @click="handleAddAttachment"
               class="w-16 h-16 rounded-lg border-2 border-dashed border-cream-200 dark:border-warm-500/20 flex flex-col items-center justify-center text-warm-300 hover:border-peach-300 hover:text-peach-400 transition-colors"
             >
               <Plus :size="16" />
-              <span class="text-[10px]">添加</span>
+              <span class="text-[10px]">拍照/相册</span>
             </button>
           </div>
-          <p class="text-[10px] text-warm-300 dark:text-warm-200">最多上传5张处方、检查报告等照片</p>
+          <p class="text-[10px] text-warm-300 dark:text-warm-200">最多5张，支持从相册选择或拍照</p>
         </div>
         <div v-if="familyMembers.length > 0" class="mb-3 relative">
           <label class="text-xs font-bold text-warm-400 dark:text-warm-100 mb-1 block">照护人</label>
